@@ -1,0 +1,4 @@
+[package]
+name = "safer-c-compiler"
+version = "0.1.0"
+authors = ["Novopia <tomyao0@gmail.com>", "puppyofkosh <puppyofkosh@gmail.com>"]
