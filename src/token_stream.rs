@@ -14,8 +14,8 @@ impl TokenStream {
         self.token_list.pop_front().expect("no more tokens!")
     }
 
-    pub fn peek(&self) -> &Lexeme {
-        self.token_list.front().expect("no more tokens!")
+    pub fn peek(&self) -> Lexeme {
+        self.token_list.front().expect("no more tokens!").clone()
     }
 
     pub fn is_empty(&self) -> bool {

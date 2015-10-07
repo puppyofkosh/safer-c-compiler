@@ -9,16 +9,18 @@ use std::path::Path;
 
 fn op_to_str(op: BinaryOp) -> &'static str {
     match op {
-        BinaryOp::Plus => "+",
-        BinaryOp::Minus => "-",
+        BinaryOp::Plus => "plus",
+        BinaryOp::Minus => "minus",
+        BinaryOp::Multiply => "times",
+        BinaryOp::Divide => "/",
     }
 }
 
 fn print_expression(expr: Expression) -> String {
     match expr {
         Expression::Value(v) => format!("{}", v),
-        Expression::BinaryOp(op, l, r) => format!("{} {} {}", l,
-                                                  op_to_str(op), r),
+        Expression::BinaryOp(op, l, r) => format!("({} {} {})", print_expression(*l),
+                                                  op_to_str(op), print_expression(*r)),
     }
 }
 
