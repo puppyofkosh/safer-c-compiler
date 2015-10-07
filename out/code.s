@@ -1,1 +1,1 @@
-return ((3 times 1) plus 2)
+return (8 times (3 times (1 plus 2)))

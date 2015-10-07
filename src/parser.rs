@@ -8,6 +8,12 @@ use token_stream::TokenStream;
 fn parse_factor(tokens: &mut TokenStream) -> Expression {
     match tokens.consume() {
         Lexeme::IntConstant(v) => Expression::Value(v),
+        Lexeme::LParen => {
+            let expr = parse_expr(tokens);
+            let last_token = tokens.consume();
+            assert_eq!(last_token, Lexeme::RParen);
+            expr
+        }
         _ => panic!("Wth"),
     }
 }
@@ -30,7 +36,7 @@ fn parse_term(tokens: &mut TokenStream) -> Expression {
     let next = tokens.peek();
     let op = match next {
         Lexeme::Operator(optype) => optype_to_op(optype),
-        _ => panic!("unexpected lexeme"),
+        _ => return left,
     };
 
     // Check if the next operator is a * or /, in which case it is part of
@@ -53,11 +59,15 @@ pub fn parse_expr(tokens: &mut TokenStream) -> Expression {
         return left;
     }
 
-    let next = tokens.consume();
-    let op = match next {
-        Lexeme::Operator(optype) => optype_to_op(optype),
-        _ => panic!("Unexpected token {:?}", next)
-    };
+    // Check if the next token is something we're interested in (an operator)
+    // If not, we're done parsing this expression
+    let op;
+    if let Lexeme::Operator(optype) = tokens.peek() {
+        op = optype_to_op(optype);
+        tokens.consume();
+    } else {
+        return left;
+    }
 
     if tokens.is_empty() {
         panic!("Op should not be the end of the statement");
