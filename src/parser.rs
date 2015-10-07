@@ -2,6 +2,7 @@ use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
 use lexeme::Lexeme;
+use lexeme::OperatorType;
 use token_stream::TokenStream;
 
 fn parse_factor(tokens: &mut TokenStream) -> Expression {
@@ -11,13 +12,12 @@ fn parse_factor(tokens: &mut TokenStream) -> Expression {
     }
 }
 
-fn opstr_to_op(opstr: &str) -> BinaryOp {
+fn optype_to_op(opstr: OperatorType) -> BinaryOp {
     match opstr {
-        "+" => BinaryOp::Plus,
-        "-" => BinaryOp::Minus,
-        "*" => BinaryOp::Multiply,
-        "/" => BinaryOp::Divide,
-        _ => panic!("Unkown operator")
+        OperatorType::Plus => BinaryOp::Plus,
+        OperatorType::Minus => BinaryOp::Minus,
+        OperatorType::Star => BinaryOp::Multiply,
+        OperatorType::Divide => BinaryOp::Divide,
     }
 }
 
@@ -29,7 +29,7 @@ fn parse_term(tokens: &mut TokenStream) -> Expression {
 
     let next = tokens.peek();
     let op = match next {
-        Lexeme::Operator(ref opstr) => opstr_to_op(&opstr),
+        Lexeme::Operator(optype) => optype_to_op(optype),
         _ => panic!("unexpected lexeme"),
     };
 
@@ -55,7 +55,7 @@ pub fn parse_expr(tokens: &mut TokenStream) -> Expression {
 
     let next = tokens.consume();
     let op = match next {
-        Lexeme::Operator(opstr) => opstr_to_op(&opstr),
+        Lexeme::Operator(optype) => optype_to_op(optype),
         _ => panic!("Unexpected token {:?}", next)
     };
 

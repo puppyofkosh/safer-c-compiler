@@ -1,12 +1,14 @@
 use lexeme::Lexeme;
+use lexeme::OperatorType;
 use token_stream::TokenStream;
 
 // FIXME: Maybe Lexeme::Operator should have an operator instead of a string...
 fn is_operator(s: &str) -> Option<Lexeme> {
     match s {
-        "+" => Some(Lexeme::Operator(s.to_string())),
-        "*" => Some(Lexeme::Operator(s.to_string())),
-        "/" => Some(Lexeme::Operator(s.to_string())),
+        "+" => Some(Lexeme::Operator(OperatorType::Plus)),
+        "*" => Some(Lexeme::Operator(OperatorType::Star)),
+        "/" => Some(Lexeme::Operator(OperatorType::Divide)),
+        "-" => Some(Lexeme::Operator(OperatorType::Minus)),
         _ => None
     }
 }

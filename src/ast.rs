@@ -3,7 +3,7 @@ pub enum BinaryOp {
     Plus,
     Minus,
     Multiply,
-    Divide
+    Divide,
 }
 
 #[derive(Debug)]
