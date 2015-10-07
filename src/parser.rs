@@ -1,18 +1,19 @@
 use ast::Statement;
 use ast::Expression;
 use lexeme::Lexeme;
+use token_stream::TokenStream;
 
-pub fn parse_expr(tokens: &[Lexeme]) -> Expression {
-    match tokens[0] {
+pub fn parse_term(tokens: &mut TokenStream) -> Expression {
+    match tokens.consume() {
         Lexeme::IntConstant(v) => Expression::Value(v),
-        _ => panic!("Wth"),
+        _ => panic!("wth"),
     }
 }
 
-pub fn parse_return(tokens: &[Lexeme]) -> Statement {
-    assert_eq!(tokens[0], Lexeme::Return);
-    assert!(tokens.len() >= 2);
+pub fn parse_return(tokens: &mut TokenStream) -> Statement {
+    assert_eq!(tokens.consume(), Lexeme::Return);
+    assert!(!tokens.is_empty());
 
-    let expr = parse_expr(&tokens[1..]);
+    let expr = parse_term(tokens);
     return Statement::Return(Box::new(expr));
 }

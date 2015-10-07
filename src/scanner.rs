@@ -1,4 +1,5 @@
 use lexeme::Lexeme;
+use token_stream::TokenStream;
 
 fn token_to_lexeme(token: &str) -> Lexeme {
     // TODO: Actually write this...need to do some cases on the token
@@ -10,7 +11,8 @@ fn token_to_lexeme(token: &str) -> Lexeme {
     }
 }
 
-pub fn get_tokens(source: &str) -> Vec<Lexeme> {
+pub fn get_tokens(source: &str) -> TokenStream {
     let split = source.split(" ");
-    return split.map(|x| token_to_lexeme(x)).collect();
+    let tokens = split.map(|x| token_to_lexeme(x)).collect();
+    TokenStream::new(tokens)
 }

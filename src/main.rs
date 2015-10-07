@@ -3,9 +3,10 @@ mod parser;
 mod ast;
 mod code_generator;
 mod lexeme;
+mod token_stream;
 
 fn main() {
-    let tokens = scanner::get_tokens("return 1");
-    let res = parser::parse_return(&tokens);
+    let mut tokens = scanner::get_tokens("return 1");
+    let res = parser::parse_return(&mut tokens);
     code_generator::generate_code(res);
 }
