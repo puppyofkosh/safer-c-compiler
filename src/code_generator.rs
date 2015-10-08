@@ -26,12 +26,23 @@ fn print_expression(expr: Expression) -> String {
 
 fn print_statement(tree: Statement) -> String {
     match tree {
-        Statement::Return(v) => format!("return {}", print_expression(*v)),
+        Statement::Return(v) => format!("popl %ebp\n\
+                                         movl $0, %ebx\n\
+                                         movl $1, %eax\n\
+                                         int $0x80\n"),
     }
 }
 
 pub fn generate_code(tree: Statement) {
-    let code = print_statement(tree);
+    let asm_header = ".section .data\n\
+                      .section .text\n\
+                      .globl _start\n\
+                      _start:\n";
+    let function_start = "pushl %ebp\n\
+                          movl %esp, %ebp\n";
+    let mut code = asm_header.to_string();
+    code.push_str(function_start);
+    code.push_str(&print_statement(tree));
 
     // Bunch of file opening crap
     let path = Path::new("out/code.s");
