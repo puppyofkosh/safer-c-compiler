@@ -18,6 +18,7 @@ fn parse_factor(tokens: &mut TokenStream) -> Expression {
     }
 }
 
+// FIXME: Do we really want this?
 fn optype_to_op(opstr: OperatorType) -> BinaryOp {
     match opstr {
         OperatorType::Plus => BinaryOp::Plus,

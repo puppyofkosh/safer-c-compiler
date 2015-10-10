@@ -1,4 +1,5 @@
-pub enum Value {
+#[derive(PartialEq, Debug)]
+pub enum Operand {
     EAX,
     EBX,
     EBP,
@@ -6,8 +7,10 @@ pub enum Value {
 }
 
 pub enum Instruction {
-    Move(Value, Value),
-    Push(Value),
-    Pop(Value),
+    Add(Operand, Operand),
+    Multiply(Operand, Operand),
+    Move(Operand, Operand),
+    Push(Operand),
+    Pop(Operand),
     Other(String),
 }
