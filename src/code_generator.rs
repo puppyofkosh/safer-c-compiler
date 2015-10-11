@@ -11,7 +11,9 @@ use assembly::Instruction::Add;
 use assembly::Operand;
 use assembly::Operand::EAX;
 use assembly::Operand::EBX;
+use assembly::Operand::ESP;
 use assembly::Operand::EBP;
+use assembly::Operand::Variable;
 use assembly::Operand::IntConstant;
 
 use std::error::Error;
@@ -64,7 +66,9 @@ fn evaluate_statement(tree: Statement,
                       instructions: &mut Vec<Instruction>) {
     match tree {
         Statement::Return(v) => {
-            evaluate_expression(*v, instructions);
+            let out_reg = evaluate_expression(*v, instructions);
+            // For now everything goes into eax
+            assert_eq!(out_reg, EAX);
 
             instructions.push(Pop(EBP));
             // FIXME: For now we assume retval is in EAX, then we put it
@@ -74,6 +78,14 @@ fn evaluate_statement(tree: Statement,
             instructions.push(Move(IntConstant(1), EAX));
             instructions.push(Instruction::Other("int $0x80".to_string()));
         }
+        Statement::Print(expr) => {
+            let result_reg = evaluate_expression(*expr, instructions);
+            instructions.push(Push(result_reg));
+            instructions.push(Push(Operand::Variable("decimal_format_str")));
+            instructions.push(Instruction::Other("call printf".to_string()));
+            // pop args off the stack
+            instructions.push(Add(IntConstant(8), ESP));
+        }
     }
 }
 
@@ -82,7 +94,9 @@ fn op_to_str(o: &Operand) -> String {
         EAX => "%eax".to_string(),
         EBX => "%ebx".to_string(),
         EBP => "%ebp".to_string(),
+        ESP => "%esp".to_string(),
         IntConstant(i) => "$".to_string() + &i.to_string(),
+        Variable(n) => "$".to_string() + &n.to_string(),
     }
 }
 
@@ -110,6 +124,7 @@ fn instruction_list_to_asm(instructions: &Vec<Instruction>) -> String {
 
 pub fn generate_code(tree: Statement) {
     let asm_header = ".section .data\n\
+                      decimal_format_str: .asciz \"%d\\n\"\n\
                       .section .text\n\
                       .globl _start\n\
                       _start:\n";
@@ -122,6 +137,10 @@ pub fn generate_code(tree: Statement) {
     // Generate what the instructions are
     let mut instructions = Vec::new();
     evaluate_statement(tree, &mut instructions);
+
+    // For now we MANUALLY return 0 at the end of our program.
+    evaluate_statement(Statement::Return(Box::new(Expression::Value(0))),
+                       &mut instructions);
     code.push_str(&instruction_list_to_asm(&instructions));
     
     // Bunch of file opening crap

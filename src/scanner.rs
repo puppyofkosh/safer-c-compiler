@@ -11,6 +11,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
 
     match token {
         "return" => Lexeme::Return,
+        "print" => Lexeme::Print,
         "*" => Lexeme::Operator(OperatorType::Star),
         "/" => Lexeme::Operator(OperatorType::Divide),
         "+" => Lexeme::Operator(OperatorType::Plus),

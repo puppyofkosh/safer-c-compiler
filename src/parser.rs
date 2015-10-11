@@ -85,3 +85,19 @@ pub fn parse_return(tokens: &mut TokenStream) -> Statement {
     let expr = parse_expr(tokens);
     return Statement::Return(Box::new(expr));
 }
+
+
+pub fn parse_print(tokens: &mut TokenStream) -> Statement {
+    assert_eq!(tokens.consume(), Lexeme::Print);
+    assert!(!tokens.is_empty());
+
+    Statement::Print(Box::new(parse_expr(tokens)))
+}
+
+pub fn parse_statement(tokens: &mut TokenStream) -> Statement {
+    match tokens.peek() {
+        Lexeme::Return => parse_return(tokens),
+        Lexeme::Print => parse_print(tokens),
+        _ => panic!("Unexpected lexeme"),
+    }
+}

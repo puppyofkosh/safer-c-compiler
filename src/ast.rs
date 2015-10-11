@@ -15,4 +15,5 @@ pub enum Expression {
 #[derive(Debug)]
 pub enum Statement {
     Return(Box<Expression>),
+    Print(Box<Expression>),
 }

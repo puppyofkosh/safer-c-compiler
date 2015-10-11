@@ -11,6 +11,7 @@ pub enum Lexeme {
     IntConstant(i32),
     Operator(OperatorType),
     Return,
+    Print,
     LParen,
     RParen,
 }

@@ -7,7 +7,7 @@ mod token_stream;
 mod assembly;
 
 fn main() {
-    let mut tokens = scanner::get_tokens("return 8 * ( 3 * ( 1 + 2 ) )");
-    let res = parser::parse_return(&mut tokens);
-    code_generator::generate_code(res);
+    let mut tokens = scanner::get_tokens("print 8 * ( 3 * ( 1 + 2 ) )");
+    let ast = parser::parse_statement(&mut tokens);
+    code_generator::generate_code(ast);
 }

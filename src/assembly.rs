@@ -3,7 +3,9 @@ pub enum Operand {
     EAX,
     EBX,
     EBP,
+    ESP,
     IntConstant(i32),
+    Variable(&'static str),
 }
 
 pub enum Instruction {
