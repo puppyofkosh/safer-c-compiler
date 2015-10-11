@@ -22,21 +22,21 @@ use std::fs::File;
 use std::path::Path;
 
 
-fn evaluate_binary_op(op: BinaryOp, l: Expression, r: Expression,
+fn evaluate_binary_op(op: &BinaryOp, l: &Expression, r: &Expression,
                       instructions: &mut Vec<Instruction>) -> Operand {
-    let left_register = evaluate_expression(l, instructions);
+    let left_register = evaluate_expression(&l, instructions);
     // Save the value that we computed in case evaluating
     // the right side overwrites this register
     instructions.push(Push(left_register));
     
-    let right_register = evaluate_expression(r, instructions);
+    let right_register = evaluate_expression(&r, instructions);
     // For now we use EAX for everything
     assert_eq!(right_register, EAX);
 
     // put the value of the left expression into EBX
     instructions.push(Pop(EBX));
 
-    match op {
+    match *op {
         BinaryOp::Plus => instructions.push(Add(EBX, EAX)),
         BinaryOp::Multiply => instructions.push(Multiply(EBX, EAX)),
         _ => panic!("WTH"),
@@ -47,26 +47,26 @@ fn evaluate_binary_op(op: BinaryOp, l: Expression, r: Expression,
 
 // Generate code to evaluate an expression and return the operand where
 // the result is stored
-fn evaluate_expression(expr: Expression,
+fn evaluate_expression(expr: &Expression,
                        instructions: &mut Vec<Instruction>) -> Operand {
-    match expr {
-        Expression::Value(v) => {
+    match *expr {
+        Expression::Value(ref v) => {
             // FIXME: We should probably use more than just the register
             // EAX...
-            instructions.push(Move(IntConstant(v), EAX));
+            instructions.push(Move(IntConstant(*v), EAX));
             EAX
         }
-        Expression::BinaryOp(op, l, r) => {
-            evaluate_binary_op(op, *l, *r, instructions)
+        Expression::BinaryOp(ref op, ref l, ref r) => {
+            evaluate_binary_op(op, l, r, instructions)
         }
     }
 }
 
-fn evaluate_statement(tree: Statement,
+fn evaluate_statement(tree: &Statement,
                       instructions: &mut Vec<Instruction>) {
-    match tree {
-        Statement::Return(v) => {
-            let out_reg = evaluate_expression(*v, instructions);
+    match *tree {
+        Statement::Return(ref v) => {
+            let out_reg = evaluate_expression(&v, instructions);
             // For now everything goes into eax
             assert_eq!(out_reg, EAX);
 
@@ -78,8 +78,8 @@ fn evaluate_statement(tree: Statement,
             instructions.push(Move(IntConstant(1), EAX));
             instructions.push(Instruction::Other("int $0x80".to_string()));
         }
-        Statement::Print(expr) => {
-            let result_reg = evaluate_expression(*expr, instructions);
+        Statement::Print(ref expr) => {
+            let result_reg = evaluate_expression(&expr, instructions);
             instructions.push(Push(result_reg));
             instructions.push(Push(Operand::Variable("decimal_format_str")));
             instructions.push(Instruction::Other("call printf".to_string()));
@@ -122,7 +122,7 @@ fn instruction_list_to_asm(instructions: &Vec<Instruction>) -> String {
                              |acc, ins| acc + &instruction_to_asm(ins))
 }
 
-pub fn generate_code(tree: Statement) {
+pub fn generate_code(tree: &Vec<Statement>) {
     let asm_header = ".section .data\n\
                       decimal_format_str: .asciz \"%d\\n\"\n\
                       .section .text\n\
@@ -136,10 +136,12 @@ pub fn generate_code(tree: Statement) {
 
     // Generate what the instructions are
     let mut instructions = Vec::new();
-    evaluate_statement(tree, &mut instructions);
+    for stmt in tree {
+        evaluate_statement(stmt, &mut instructions);
+    }
 
     // For now we MANUALLY return 0 at the end of our program.
-    evaluate_statement(Statement::Return(Box::new(Expression::Value(0))),
+    evaluate_statement(&Statement::Return(Box::new(Expression::Value(0))),
                        &mut instructions);
     code.push_str(&instruction_list_to_asm(&instructions));
     

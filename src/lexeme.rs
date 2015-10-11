@@ -14,4 +14,5 @@ pub enum Lexeme {
     Print,
     LParen,
     RParen,
+    EndOfStatement,
 }

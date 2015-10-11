@@ -18,7 +18,8 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "-" => Lexeme::Operator(OperatorType::Minus),
         "(" => Lexeme::LParen,
         ")" => Lexeme::RParen,
-        _ => panic!("Unkown token!"),
+        ";" => Lexeme::EndOfStatement,
+        _ => panic!("Unkown token! {}", token),
     }
 }
 

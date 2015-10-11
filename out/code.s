@@ -22,6 +22,11 @@ pushl %eax
 pushl $decimal_format_str
 call printf
 addl $8, %esp
+movl $11, %eax
+pushl %eax
+pushl $decimal_format_str
+call printf
+addl $8, %esp
 movl $0, %eax
 popl %ebp
 movl %eax, %ebx

@@ -101,3 +101,12 @@ pub fn parse_statement(tokens: &mut TokenStream) -> Statement {
         _ => panic!("Unexpected lexeme"),
     }
 }
+
+pub fn parse_tokens(tokens: &mut TokenStream) -> Vec<Statement> {
+    let mut out = Vec::new();
+    while !tokens.is_empty() {
+        out.push(parse_statement(tokens));
+        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+    }
+    out
+}
