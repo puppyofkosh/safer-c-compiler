@@ -14,6 +14,9 @@ pushl %eax
 pushl $decimal_format_str
 call printf
 addl $8, %esp
+pushl $0
+call fflush
+addl $4, %esp
 movl $0, %eax
 popl %ebp
 movl %eax, %ebx

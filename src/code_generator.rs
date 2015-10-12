@@ -85,6 +85,12 @@ fn evaluate_statement(tree: &Statement,
             instructions.push(Instruction::Other("call printf".to_string()));
             // pop args off the stack
             instructions.push(Add(IntConstant(8), ESP));
+
+            // Call fflush(0)
+
+            instructions.push(Push(IntConstant(0)));
+            instructions.push(Instruction::Other("call fflush".to_string()));
+            instructions.push(Add(IntConstant(4), ESP));
         }
     }
 }

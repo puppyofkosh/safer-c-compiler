@@ -1,3 +1,5 @@
+use std::collections::LinkedList;
+
 use lexeme::Lexeme;
 use lexeme::OperatorType;
 use token_stream::TokenStream;
@@ -24,7 +26,18 @@ fn token_to_lexeme(token: &str) -> Lexeme {
 }
 
 pub fn get_tokens(source: &str) -> TokenStream {
-    let split = source.split(" ");
-    let tokens = split.map(|x| token_to_lexeme(x)).collect();
+    // split by lines, get rid of comments
+    let line_split = source.split("\n");
+    let lines = line_split.filter(|l| !l.starts_with("//"));
+    
+    let mut tokens = LinkedList::new();
+    for line in lines {
+        let split = line.split(" ");
+        let mut line_tokens: LinkedList<Lexeme> = split
+            .map(token_to_lexeme)
+            .collect();
+        tokens.append(&mut line_tokens);
+    }
+
     TokenStream::new(tokens)
 }
