@@ -133,8 +133,6 @@ pub fn generate_code(tree: &Vec<Statement>) {
     let mut code = asm_header.to_string();
     code.push_str(function_start);
 
-
-    // Generate what the instructions are
     let mut instructions = Vec::new();
     for stmt in tree {
         evaluate_statement(stmt, &mut instructions);

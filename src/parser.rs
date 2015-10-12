@@ -54,7 +54,7 @@ fn parse_term(tokens: &mut TokenStream) -> Expression {
     }
 }
 
-pub fn parse_expr(tokens: &mut TokenStream) -> Expression {
+fn parse_expr(tokens: &mut TokenStream) -> Expression {
     let left = parse_term(tokens);
     if tokens.is_empty() {
         return left;
@@ -78,7 +78,7 @@ pub fn parse_expr(tokens: &mut TokenStream) -> Expression {
     Expression::BinaryOp(op, Box::new(left), Box::new(right))
 }
 
-pub fn parse_return(tokens: &mut TokenStream) -> Statement {
+fn parse_return(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Return);
     assert!(!tokens.is_empty());
 
@@ -87,14 +87,14 @@ pub fn parse_return(tokens: &mut TokenStream) -> Statement {
 }
 
 
-pub fn parse_print(tokens: &mut TokenStream) -> Statement {
+fn parse_print(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Print);
     assert!(!tokens.is_empty());
 
     Statement::Print(Box::new(parse_expr(tokens)))
 }
 
-pub fn parse_statement(tokens: &mut TokenStream) -> Statement {
+fn parse_statement(tokens: &mut TokenStream) -> Statement {
     match tokens.peek() {
         Lexeme::Return => parse_return(tokens),
         Lexeme::Print => parse_print(tokens),
