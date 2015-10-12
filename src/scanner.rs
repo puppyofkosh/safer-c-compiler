@@ -25,19 +25,51 @@ fn token_to_lexeme(token: &str) -> Lexeme {
     }
 }
 
-pub fn get_tokens(source: &str) -> TokenStream {
-    // split by lines, get rid of comments
-    let line_split = source.split("\n");
-    let lines = line_split.filter(|l| !l.starts_with("//"));
-    
+fn read_until(iter: &mut Iterator<Item=char>, stop_ch: char) {
+    while let Some(ch) = iter.next() {
+        if ch == stop_ch {
+            break;
+        }
+    }
+}
+
+fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
+    let mut iter = source.chars().peekable();
     let mut tokens = LinkedList::new();
-    for line in lines {
-        let split = line.split(" ");
-        let mut line_tokens: LinkedList<Lexeme> = split
-            .map(token_to_lexeme)
-            .collect();
-        tokens.append(&mut line_tokens);
+
+    let mut s = String::new();
+    
+    
+
+    while let Some(ch) = iter.next() {
+        // Check for comments. FIXME: This is super ugly. Why do we have 3 nested statements?
+        if ch == '/' {
+            if let Some(&'/') = iter.peek() {
+                // We have a comment. Continue reading until we hit a newline
+                read_until(&mut iter, '\n');
+                continue;
+            }
+        }
+        
+        if ch.is_alphanumeric() {
+            s.push(ch);
+            continue;
+        }
+
+        if !s.is_empty() {
+            tokens.push_back(token_to_lexeme(&s));
+            s = String::new();
+        }
+        
+        if !ch.is_whitespace() {
+            tokens.push_back(token_to_lexeme(&ch.to_string()));
+        }
     }
 
-    TokenStream::new(tokens)
+    tokens
+}
+
+pub fn get_tokens(source: &str) -> TokenStream {
+    let t = get_token_strings(source);
+    TokenStream::new(t)
 }

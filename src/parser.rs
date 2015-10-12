@@ -18,9 +18,9 @@ fn parse_factor(tokens: &mut TokenStream) -> Expression {
     }
 }
 
-// FIXME: Do we really want this?
-fn optype_to_op(opstr: OperatorType) -> BinaryOp {
-    match opstr {
+// FIXME: Do we really want to do this?
+fn optype_to_op(op: &OperatorType) -> BinaryOp {
+    match *op {
         OperatorType::Plus => BinaryOp::Plus,
         OperatorType::Minus => BinaryOp::Minus,
         OperatorType::Star => BinaryOp::Multiply,
@@ -34,20 +34,16 @@ fn parse_term(tokens: &mut TokenStream) -> Expression {
         return left;
     }
 
-    let next = tokens.peek();
-    let op = match next {
-        Lexeme::Operator(optype) => optype_to_op(optype),
-        _ => return left,
-    };
-
     // Check if the next operator is a * or /, in which case it is part of
     // this term. If it's an addition operator, it's part of a expr, not a
     // term
-    match op {
-        BinaryOp::Multiply | BinaryOp::Divide => {
+    match tokens.peek() {
+        Lexeme::Operator(ref t) if (*t == OperatorType::Star) | (*t == OperatorType::Divide) => {
             tokens.consume();
             assert!(!tokens.is_empty(), "Last tok shouldn't be an operator");
             let right = parse_factor(tokens);
+
+            let op = optype_to_op(t);
             Expression::BinaryOp(op, Box::new(left), Box::new(right))
         }
         _ => left
@@ -64,7 +60,7 @@ fn parse_expr(tokens: &mut TokenStream) -> Expression {
     // If not, we're done parsing this expression
     let op;
     if let Lexeme::Operator(optype) = tokens.peek() {
-        op = optype_to_op(optype);
+        op = optype_to_op(&optype);
         tokens.consume();
     } else {
         return left;

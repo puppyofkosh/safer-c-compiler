@@ -6,6 +6,7 @@ pub struct TokenStream {
 }
 
 impl TokenStream {
+    // FIXME: Perhaps this should take an iterator and build a linked list from it?
     pub fn new(tokens: LinkedList<Lexeme>) -> TokenStream {
         TokenStream{token_list: tokens}
     }
