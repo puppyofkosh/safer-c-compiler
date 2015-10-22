@@ -16,4 +16,5 @@ pub enum Expression {
 pub enum Statement {
     Return(Box<Expression>),
     Print(Box<Expression>),
+    If(Box<Expression>, Vec<Statement>),
 }

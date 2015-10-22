@@ -12,6 +12,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
     }
 
     match token {
+        "if" => Lexeme::If,
         "return" => Lexeme::Return,
         "print" => Lexeme::Print,
         "*" => Lexeme::Operator(OperatorType::Star),
@@ -20,6 +21,8 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "-" => Lexeme::Operator(OperatorType::Minus),
         "(" => Lexeme::LParen,
         ")" => Lexeme::RParen,
+        "{" => Lexeme::StartBlock,
+        "}" => Lexeme::EndBlock,
         ";" => Lexeme::EndOfStatement,
         _ => panic!("Unkown token! {}", token),
     }
@@ -38,8 +41,6 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
     let mut tokens = LinkedList::new();
 
     let mut s = String::new();
-    
-    
 
     while let Some(ch) = iter.next() {
         // Check for comments. FIXME: This is super ugly. Why do we have 3 nested statements?

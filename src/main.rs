@@ -1,6 +1,7 @@
 mod scanner;
 mod parser;
 mod ast;
+mod x86_code_generator;
 mod code_generator;
 mod lexeme;
 mod token_stream;
@@ -8,8 +9,10 @@ mod assembly;
 
 use std::io::prelude::*;
 use std::fs::File;
-
 use std::env;
+
+use code_generator::GeneratesCode;
+
 
 fn read_file(name: &str) -> std::io::Result<String> {
     let mut f = try!(File::open(name));
@@ -34,6 +37,8 @@ fn main() {
     let program_text = result.unwrap();
 
     let mut tokens = scanner::get_tokens(&program_text);
-    let ast = parser::parse_tokens(&mut tokens);
-    code_generator::generate_code(&ast);
+    let ast = parser::parse_block(&mut tokens);
+
+    let mut code_generator = x86_code_generator::X86CodeGenerator::new();
+    code_generator.generate_code(&ast);
 }

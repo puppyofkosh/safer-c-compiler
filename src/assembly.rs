@@ -14,5 +14,8 @@ pub enum Instruction {
     Move(Operand, Operand),
     Push(Operand),
     Pop(Operand),
+    Compare(Operand, Operand),
+    JumpIfEqual(String),
+    Label(String),
     Other(String),
 }

@@ -8,11 +8,14 @@ pub enum OperatorType {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Lexeme {
+    If,
     IntConstant(i32),
     Operator(OperatorType),
     Return,
     Print,
     LParen,
     RParen,
-    EndOfStatement,
+    EndOfStatement, // ;
+    StartBlock, // {
+    EndBlock,
 }
