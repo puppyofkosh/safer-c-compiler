@@ -4,6 +4,7 @@ pub enum OperatorType {
     Minus,
     Star,
     Divide,
+    CompareEqual,
 }
 
 #[derive(PartialEq, Debug, Clone)]

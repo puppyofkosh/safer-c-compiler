@@ -2,6 +2,7 @@
 pub enum Operand {
     EAX,
     EBX,
+    ECX,
     EBP,
     ESP,
     IntConstant(i32),
@@ -11,6 +12,8 @@ pub enum Operand {
 pub enum Instruction {
     Add(Operand, Operand),
     Multiply(Operand, Operand),
+    Subtract(Operand, Operand),
+    Divide(Operand),
     Move(Operand, Operand),
     Push(Operand),
     Pop(Operand),
@@ -18,4 +21,5 @@ pub enum Instruction {
     JumpIfEqual(String),
     Label(String),
     Other(String),
+    Comment(String),
 }

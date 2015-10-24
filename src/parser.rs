@@ -25,6 +25,7 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
         OperatorType::Minus => BinaryOp::Minus,
         OperatorType::Star => BinaryOp::Multiply,
         OperatorType::Divide => BinaryOp::Divide,
+        OperatorType::CompareEqual => BinaryOp::CompareEqual,
     }
 }
 
@@ -74,11 +75,30 @@ fn parse_expr(tokens: &mut TokenStream) -> Expression {
     Expression::BinaryOp(op, Box::new(left), Box::new(right))
 }
 
+fn parse_comparison(tokens: &mut TokenStream) -> Expression {
+    let left = parse_expr(tokens);
+
+    if tokens.is_empty() {
+        return left;
+    }
+
+    if let Lexeme::Operator(optype) = tokens.peek() {
+        if optype != OperatorType::CompareEqual {
+            return left;
+        }
+        let op = optype_to_op(&optype);
+        let right = parse_expr(tokens);
+        return Expression::BinaryOp(op, Box::new(left), Box::new(right));
+    }
+
+    left
+}
+
 fn parse_return(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Return);
     assert!(!tokens.is_empty());
 
-    let expr = parse_expr(tokens);
+    let expr = parse_comparison(tokens);
     assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
     return Statement::Return(Box::new(expr));
 }
@@ -87,17 +107,18 @@ fn parse_return(tokens: &mut TokenStream) -> Statement {
 fn parse_print(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Print);
     assert!(!tokens.is_empty());
-    let out = Statement::Print(Box::new(parse_expr(tokens)));
+    let out = Statement::Print(Box::new(parse_comparison(tokens)));
 
     assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
     out
 }
 
+
 fn parse_if(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::If);
     assert!(!tokens.is_empty());
 
-    let condition = parse_expr(tokens);
+    let condition = parse_comparison(tokens);
     let block = parse_block(tokens);
 
     Statement::If(Box::new(condition), block)

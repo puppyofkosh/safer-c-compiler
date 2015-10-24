@@ -7,6 +7,7 @@ use assembly::Instruction::*;
 use assembly::Operand;
 use assembly::Operand::EAX;
 use assembly::Operand::EBX;
+use assembly::Operand::ECX;
 use assembly::Operand::ESP;
 use assembly::Operand::EBP;
 use assembly::Operand::Variable;
@@ -21,6 +22,8 @@ use code_generator::GeneratesCode;
 
 fn evaluate_binary_op(op: &BinaryOp, l: &Expression, r: &Expression,
                       instructions: &mut Vec<Instruction>) -> Operand {
+    instructions.push(Comment("Evaluating binary operation".to_string()));
+
     let left_register = evaluate_expression(&l, instructions);
     // Save the value that we computed in case evaluating
     // the right side overwrites this register
@@ -34,9 +37,25 @@ fn evaluate_binary_op(op: &BinaryOp, l: &Expression, r: &Expression,
     instructions.push(Pop(EBX));
 
     match *op {
+
         BinaryOp::Plus => instructions.push(Add(EBX, EAX)),
         BinaryOp::Multiply => instructions.push(Multiply(EBX, EAX)),
-        _ => panic!("WTH"),
+        BinaryOp::Minus => {
+            instructions.push(Subtract(EAX, EBX));
+            instructions.push(Move(EBX, EAX));
+        }
+        BinaryOp::Divide => {
+            instructions.push(Move(EAX, ECX));
+            instructions.push(Move(EBX, EAX));
+            instructions.push(Other("cltd".to_string()));
+            instructions.push(Divide(ECX));
+        }
+        BinaryOp::CompareEqual => {
+            instructions.push(Compare(EAX, EBX));
+            // FIXME: weird
+            instructions.push(Other("sete %al".to_string()));
+            instructions.push(Other("movzbl %al, %eax".to_string()));
+        }
     }
 
     return EAX;
@@ -63,6 +82,7 @@ fn op_to_str(o: &Operand) -> String {
     match *o {
         EAX => "%eax".to_string(),
         EBX => "%ebx".to_string(),
+        ECX => "%ecx".to_string(),
         EBP => "%ebp".to_string(),
         ESP => "%esp".to_string(),
         IntConstant(i) => "$".to_string() + &i.to_string(),
@@ -76,6 +96,8 @@ fn instruction_to_asm(ins: &Instruction) -> String {
                                      op_to_str(b)),
         Multiply(ref a, ref b) => format!("imull {}, {}", op_to_str(a),
                                           op_to_str(b)),
+        Subtract(ref a, ref b) => format!("subl {}, {}", op_to_str(a), op_to_str(b)),
+        Divide(ref a) => format!("idivl {}", op_to_str(a)),
         Move(ref a, ref b) => format!("movl {}, {}", op_to_str(a),
                                       op_to_str(b)),
         Push(ref a) => format!("pushl {}", op_to_str(a)),
@@ -85,6 +107,7 @@ fn instruction_to_asm(ins: &Instruction) -> String {
                                          op_to_str(b)),
         JumpIfEqual(ref a) => format!("je {}", a),
         Label(ref l) => format!("{}:", l),
+        Comment(ref s) => format!("# {}", s),
     };
 
     s.push_str("\n");
@@ -133,6 +156,7 @@ impl X86CodeGenerator {
                 instructions.push(Instruction::Other("int $0x80".to_string()));
             }
             Statement::Print(ref expr) => {
+                instructions.push(Comment("Evaluating print statement".to_string()));
                 let result_reg = evaluate_expression(&expr, instructions);
                 instructions.push(Push(result_reg));
                 instructions.push(Push(Operand::Variable("decimal_format_str")));

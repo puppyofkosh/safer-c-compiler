@@ -4,6 +4,7 @@ pub enum BinaryOp {
     Minus,
     Multiply,
     Divide,
+    CompareEqual,
 }
 
 #[derive(Debug)]

@@ -15,6 +15,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "if" => Lexeme::If,
         "return" => Lexeme::Return,
         "print" => Lexeme::Print,
+        "==" => Lexeme::Operator(OperatorType::CompareEqual),
         "*" => Lexeme::Operator(OperatorType::Star),
         "/" => Lexeme::Operator(OperatorType::Divide),
         "+" => Lexeme::Operator(OperatorType::Plus),
@@ -52,7 +53,8 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
             }
         }
         
-        if ch.is_alphanumeric() {
+        // FIXME: Dont do this
+        if ch.is_alphanumeric() || ch == '=' {
             s.push(ch);
             continue;
         }
