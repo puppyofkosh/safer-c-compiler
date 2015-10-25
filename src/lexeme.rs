@@ -5,6 +5,11 @@ pub enum OperatorType {
     Star,
     Divide,
     CompareEqual,
+    CompareGreater,
+    CompareLess,
+    CompareGreaterOrEqual,
+    CompareLessOrEqual,
+    CompareNotEqual,
 }
 
 #[derive(PartialEq, Debug, Clone)]

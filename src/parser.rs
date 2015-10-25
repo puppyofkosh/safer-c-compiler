@@ -26,6 +26,11 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
         OperatorType::Star => BinaryOp::Multiply,
         OperatorType::Divide => BinaryOp::Divide,
         OperatorType::CompareEqual => BinaryOp::CompareEqual,
+        OperatorType::CompareGreater => BinaryOp::CompareGreater,
+        OperatorType::CompareLess => BinaryOp::CompareLess,
+        OperatorType::CompareGreaterOrEqual => BinaryOp::CompareGreaterOrEqual,
+        OperatorType::CompareLessOrEqual => BinaryOp::CompareLessOrEqual,
+        OperatorType::CompareNotEqual => BinaryOp::CompareNotEqual,
     }
 }
 
@@ -83,7 +88,8 @@ fn parse_comparison(tokens: &mut TokenStream) -> Expression {
     }
 
     if let Lexeme::Operator(optype) = tokens.peek() {
-        if optype != OperatorType::CompareEqual {
+
+        if optype != OperatorType::CompareEqual || optype != OperatorType::CompareGreater || optype != OperatorType::CompareLess || optype != OperatorType::CompareNotEqual || optype != OperatorType::CompareGreaterOrEqual || optype != OperatorType::CompareLessOrEqual {
             return left;
         }
         let op = optype_to_op(&optype);

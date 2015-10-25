@@ -56,6 +56,33 @@ fn evaluate_binary_op(op: &BinaryOp, l: &Expression, r: &Expression,
             instructions.push(Other("sete %al".to_string()));
             instructions.push(Other("movzbl %al, %eax".to_string()));
         }
+        BinaryOp::CompareGreater => {
+            instructions.push(Compare(EAX, EBX));
+            instructions.push(Other("setg %al".to_string()));
+            instructions.push(Other("movzbl %al, %eax".to_string()));
+        }
+        BinaryOp::CompareLess => {
+            instructions.push(Compare(EAX, EBX));
+            instructions.push(Other("setl %al".to_string()));
+            instructions.push(Other("movzbl %al, %eax".to_string()));
+        }
+        BinaryOp::CompareGreaterOrEqual => {
+            instructions.push(Compare(EAX, EBX));
+            instructions.push(Other("setge %al".to_string()));
+            instructions.push(Other("movzbl %al, %eax".to_string()));
+        }
+        BinaryOp::CompareLessOrEqual => {
+            instructions.push(Compare(EAX, EBX));
+            instructions.push(Other("setle %al".to_string()));
+            instructions.push(Other("movzbl %al, %eax".to_string()));
+ 
+        }
+        BinaryOp::CompareNotEqual => {
+            instructions.push(Compare(EAX, EBX));
+            instructions.push(Other("setne %al".to_string()));
+            instructions.push(Other("movzbl %al, %eax".to_string()));
+        }
+
     }
 
     return EAX;

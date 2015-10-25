@@ -5,6 +5,11 @@ pub enum BinaryOp {
     Multiply,
     Divide,
     CompareEqual,
+    CompareGreater,
+    CompareLess,
+    CompareGreaterOrEqual,
+    CompareLessOrEqual,
+    CompareNotEqual,
 }
 
 #[derive(Debug)]
