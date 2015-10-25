@@ -58,20 +58,18 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
             }
         }
         
-        // FIXME: Dont do this
-        if ch.is_alphanumeric() || ch == '=' || ch == '>' || ch == '<' || ch == '!' {
+        if ch.is_whitespace() {
+            if s.len() > 0 {
+                tokens.push_back(token_to_lexeme(&s));
+                s = String::new();
+            }
+        } else {
             s.push(ch);
-            continue;
         }
+    }
 
-        if !s.is_empty() {
-            tokens.push_back(token_to_lexeme(&s));
-            s = String::new();
-        }
-        
-        if !ch.is_whitespace() {
-            tokens.push_back(token_to_lexeme(&ch.to_string()));
-        }
+    if s.len() > 0 {
+        tokens.push_back(token_to_lexeme(&s));
     }
 
     tokens
