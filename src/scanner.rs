@@ -15,6 +15,8 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "if" => Lexeme::If,
         "return" => Lexeme::Return,
         "print" => Lexeme::Print,
+        "let" => Lexeme::Let,
+        "=" => Lexeme::Operator(OperatorType::Assign),
         "==" => Lexeme::Operator(OperatorType::CompareEqual),
         ">" => Lexeme::Operator(OperatorType::CompareGreater),
         "<" => Lexeme::Operator(OperatorType::CompareLess),
@@ -30,7 +32,14 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "{" => Lexeme::StartBlock,
         "}" => Lexeme::EndBlock,
         ";" => Lexeme::EndOfStatement,
-        _ => panic!("Unkown token! {}", token),
+        _ => {
+            if token.chars().all(|ch| ch.is_alphanumeric()) {
+                Lexeme::Identifier(token.to_string())
+            }
+            else {
+                panic!("Unkown token! {}", token)            
+            }
+        }
     }
 }
 

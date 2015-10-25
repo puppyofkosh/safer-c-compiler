@@ -7,6 +7,7 @@ use token_stream::TokenStream;
 
 fn parse_factor(tokens: &mut TokenStream) -> Expression {
     match tokens.consume() {
+        Lexeme::Identifier(name) => Expression::Variable(name),
         Lexeme::IntConstant(v) => Expression::Value(v),
         Lexeme::LParen => {
             let expr = parse_expr(tokens);
@@ -31,6 +32,7 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
         OperatorType::CompareGreaterOrEqual => BinaryOp::CompareGreaterOrEqual,
         OperatorType::CompareLessOrEqual => BinaryOp::CompareLessOrEqual,
         OperatorType::CompareNotEqual => BinaryOp::CompareNotEqual,
+        OperatorType::Assign => panic!("Illegal operator"),
     }
 }
 
@@ -130,6 +132,38 @@ fn parse_if(tokens: &mut TokenStream) -> Statement {
     Statement::If(Box::new(condition), block)
 }
 
+fn parse_declaration(tokens: &mut TokenStream) -> Statement {
+    assert_eq!(tokens.consume(), Lexeme::Let);
+    assert!(!tokens.is_empty());
+    
+    if let Lexeme::Identifier(name) = tokens.consume() {
+        assert_eq!(tokens.consume(), Lexeme::Operator(OperatorType::Assign));
+
+        let expr = parse_comparison(tokens);
+        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+
+        Statement::Let(name, Box::new(expr))
+    }
+    else {
+        panic!("Expected an identifier");
+    }
+}
+
+fn parse_assignment(tokens: &mut TokenStream) -> Statement{
+    let tok = tokens.consume();
+    if let Lexeme::Identifier(name) = tok {
+        assert_eq!(tokens.consume(), Lexeme::Operator(OperatorType::Assign));
+
+        let expr = parse_comparison(tokens);
+        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+        
+        Statement::Assign(name, Box::new(expr))
+    }
+    else {
+        panic!("Expected an identifier");
+    }
+}
+
 fn parse_statement(tokens: &mut TokenStream) -> Statement {
     let token = tokens.peek();
 
@@ -137,7 +171,9 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
         Lexeme::Return => parse_return(tokens),
         Lexeme::Print => parse_print(tokens),
         Lexeme::If => parse_if(tokens),
-        _ => panic!("Unexpected lexeme"),
+        Lexeme::Let => parse_declaration(tokens),
+        Lexeme::Identifier(_s) => parse_assignment(tokens),
+        _ => panic!("Unexpected lexeme {:?}", token),
     }
 }
 

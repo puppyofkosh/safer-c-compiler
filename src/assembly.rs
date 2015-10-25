@@ -5,6 +5,7 @@ pub enum Operand {
     ECX,
     EBP,
     ESP,
+    Dereference(Box<Operand>, i32),
     IntConstant(i32),
     Variable(&'static str),
 }
