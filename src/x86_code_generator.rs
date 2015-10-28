@@ -198,8 +198,11 @@ impl X86CodeGenerator {
         instructions.push(Push(left_register));
         
         let right_register = self.evaluate_expression(&r, instructions);
+
         // For now we use EAX for everything
-        assert_eq!(right_register, EAX);
+        if right_register != EAX {
+            instructions.push(Move(right_register, EAX));
+        }
 
         // put the value of the left expression into EBX
         instructions.push(Pop(EBX));
