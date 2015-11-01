@@ -13,6 +13,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
 
     match token {
         "if" => Lexeme::If,
+        "while" => Lexeme::While,
         "return" => Lexeme::Return,
         "print" => Lexeme::Print,
         "let" => Lexeme::Let,

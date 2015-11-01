@@ -142,7 +142,7 @@ impl X86CodeGenerator {
                 instructions.push(Add(IntConstant(4), ESP));
             }
             Statement::If(ref expr, ref statements) => {
-	        let reg = self.evaluate_expression(&expr, instructions);
+                let reg = self.evaluate_expression(&expr, instructions);
 
                 let label = format!("L{}", self.label_num);
                 self.label_num += 1;
@@ -154,6 +154,18 @@ impl X86CodeGenerator {
 
                 // print the label to jump to if the expr is false
                 instructions.push(Instruction::Label(label.to_string()));
+            }
+            Statement::While(ref expr, ref statement) => {
+                let label1 = format!("L{}", self.label_num);
+                let label2 = format!("L{}", self.label_num+1);
+                self.label_num += 2;
+                instruction.push(Instruction::Label(label1.to_string()));
+                let reg = self.evaluate_expression(&expr, instructions);
+                instructions.push(Compare(IntConstant(0), reg));
+                instruction.push(JumpIfEqual(label2.to_string()));
+                self.evaluate_block(statements, instructions);
+                instruction.push(Jump(label1.to_string()));
+                instruction.push(Instruction::Label(label2.to_string()));
             }
             Statement::Let(ref name, ref expr) => {
                 instructions.push(Comment(format!("variable declaration{}", name)));

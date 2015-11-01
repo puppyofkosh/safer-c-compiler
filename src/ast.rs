@@ -24,6 +24,7 @@ pub enum Statement {
     Return(Box<Expression>),
     Print(Box<Expression>),
     If(Box<Expression>, Vec<Statement>),
+    While(Box<Expression>, Vec<Statement>),
     Let(String, Box<Expression>),
     Assign(String, Box<Expression>),
 }

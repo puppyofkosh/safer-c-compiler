@@ -132,6 +132,16 @@ fn parse_if(tokens: &mut TokenStream) -> Statement {
     Statement::If(Box::new(condition), block)
 }
 
+fn parse_while(tokens: &mut TokenStream) -> Statement {
+    assert_eq!(tokens.consume(), Lexeme::If);
+    assert!(!tokens.is_empty());
+
+    let condition = parse_comparison(tokens);
+    let block = parse_block(tokens);
+
+    Statement::While(Box::new(condition), block);
+}
+
 fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Let);
     assert!(!tokens.is_empty());
@@ -171,6 +181,7 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
         Lexeme::Return => parse_return(tokens),
         Lexeme::Print => parse_print(tokens),
         Lexeme::If => parse_if(tokens),
+        Lexeme::While => parse_while(tokens),
         Lexeme::Let => parse_declaration(tokens),
         Lexeme::Identifier(_s) => parse_assignment(tokens),
         _ => panic!("Unexpected lexeme {:?}", token),
