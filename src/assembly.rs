@@ -20,6 +20,8 @@ pub enum Instruction {
     Pop(Operand),
     Compare(Operand, Operand),
     JumpIfEqual(String),
+    JumpIfNotEqual(String),
+    Jump(String),
     Label(String),
     Other(String),
     Comment(String),

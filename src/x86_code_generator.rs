@@ -47,6 +47,8 @@ fn instruction_to_asm(ins: &Instruction) -> String {
         Compare(ref a, ref b) => format!("cmp {}, {}", op_to_str(a),
                                          op_to_str(b)),
         JumpIfEqual(ref a) => format!("je {}", a),
+        JumpIfNotEqual(ref a) => format!("jne {}", a),
+        Jump(ref a) => format!("jmp {}", a),
         Label(ref l) => format!("{}:", l),
         Comment(ref s) => format!("# {}", s),
     };
@@ -159,13 +161,15 @@ impl X86CodeGenerator {
                 let label1 = format!("L{}", self.label_num);
                 let label2 = format!("L{}", self.label_num+1);
                 self.label_num += 2;
-                instruction.push(Instruction::Label(label1.to_string()));
+
+                instructions.push(Jump(label2.to_string()));
+                instructions.push(Label(label1.to_string()));
+                self.evaluate_block(statement, instructions);
+
+                instructions.push(Label(label2.to_string()));
                 let reg = self.evaluate_expression(&expr, instructions);
                 instructions.push(Compare(IntConstant(0), reg));
-                instruction.push(JumpIfEqual(label2.to_string()));
-                self.evaluate_block(statements, instructions);
-                instruction.push(Jump(label1.to_string()));
-                instruction.push(Instruction::Label(label2.to_string()));
+                instructions.push(JumpIfNotEqual(label1.to_string()));
             }
             Statement::Let(ref name, ref expr) => {
                 instructions.push(Comment(format!("variable declaration{}", name)));

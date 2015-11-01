@@ -133,13 +133,13 @@ fn parse_if(tokens: &mut TokenStream) -> Statement {
 }
 
 fn parse_while(tokens: &mut TokenStream) -> Statement {
-    assert_eq!(tokens.consume(), Lexeme::If);
+    assert_eq!(tokens.consume(), Lexeme::While);
     assert!(!tokens.is_empty());
 
     let condition = parse_comparison(tokens);
     let block = parse_block(tokens);
 
-    Statement::While(Box::new(condition), block);
+    Statement::While(Box::new(condition), block)
 }
 
 fn parse_declaration(tokens: &mut TokenStream) -> Statement {
