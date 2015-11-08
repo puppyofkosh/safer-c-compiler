@@ -5,6 +5,8 @@ use lexeme::OperatorType;
 use token_stream::TokenStream;
 
 fn token_to_lexeme(token: &str) -> Lexeme {
+    assert!(token.len() > 0);
+
     // TODO: Actually write this...need to do some cases on the token
     let parsed_int = token.parse::<i32>().ok();
     if let Some(value) = parsed_int {
@@ -44,38 +46,52 @@ fn token_to_lexeme(token: &str) -> Lexeme {
     }
 }
 
-fn read_until(iter: &mut Iterator<Item=char>, stop_ch: char) {
-    while let Some(ch) = iter.next() {
-        if ch == stop_ch {
-            break;
-        }
-    }
-}
-
 fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
-    let mut iter = source.chars().peekable();
+    let chars: Vec<char> = source.chars().collect();
     let mut tokens = LinkedList::new();
+    if source.len() == 0 {
+        return tokens;
+    }
 
     let mut s = String::new();
+    let mut index = 0;
+    let mut all_chars_alphanumeric = chars[0].is_alphanumeric();
+    while index < chars.len() {
+        let ch = chars[index];
+        let next_ch = if index + 1 < chars.len() {
+            Some(chars[index + 1])
+        } else {
+            None
+        };
 
-    while let Some(ch) = iter.next() {
-        // Check for comments. FIXME: This is super ugly. Why do we have 3 nested statements?
-        if ch == '/' {
-            if let Some(&'/') = iter.peek() {
-                // We have a comment. Continue reading until we hit a newline
-                read_until(&mut iter, '\n');
+        if ch == '/' && next_ch == Some('/'){
+            let next_ind = chars.iter().position(|x| *x == '\n');
+            if let Some(p) = next_ind {
+                index = p + 1;
                 continue;
             }
-        }
-        
-        if ch.is_whitespace() {
-            if s.len() > 0 {
-                tokens.push_back(token_to_lexeme(&s));
-                s = String::new();
+            else {
+                break;
             }
-        } else {
+        }        
+
+        let is_ws = ch.is_whitespace();
+        let alphanum_changed = ch.is_alphanumeric() != all_chars_alphanumeric;
+        if s.len() > 0 && (is_ws || alphanum_changed) {
+            tokens.push_back(token_to_lexeme(&s));
+            s = String::new();
+        }
+
+        if alphanum_changed && !is_ws {
+            all_chars_alphanumeric = ch.is_alphanumeric();
+
+        }
+
+        if !is_ws {
             s.push(ch);
         }
+
+        index += 1;
     }
 
     if s.len() > 0 {
