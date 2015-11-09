@@ -184,6 +184,20 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
     }
 }
 
+fn parse_function(tokens: &mut TokenStream) -> Statement {
+    assert_eq!(tokens.consume(), Lexeme::Call);
+    assert(!tokens.is_empty());
+
+    if let Lexeme::Identifier(name) = tokens.consume() {
+        let expr = parse_expression(tokens);
+        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+
+        Statement::Call(name, Box::new(expr));
+    } else {
+        panic!("Expected an identifier");
+    }
+}
+
 fn parse_statement(tokens: &mut TokenStream) -> Statement {
     let token = tokens.peek();
 
@@ -193,6 +207,7 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
         Lexeme::If => parse_if(tokens),
         Lexeme::While => parse_while(tokens),
         Lexeme::Let => parse_declaration(tokens),
+        Lexeme::Call => parse_function(tokens),
         Lexeme::Identifier(_s) => parse_assignment(tokens),
         _ => panic!("Unexpected lexeme {:?}", token),
     }
