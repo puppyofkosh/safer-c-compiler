@@ -16,6 +16,7 @@ pub enum BinaryOp {
 pub enum Expression {
     Value(i32),
     Variable(String),
+    StringValue(String),
     BinaryOp(BinaryOp, Box<Expression>, Box<Expression>)
 }
 

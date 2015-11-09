@@ -45,6 +45,7 @@ fn rpn_to_ast(rpn_tokens: &Vec<Lexeme>) -> Expression {
     for tok in rpn_tokens {
         match *tok {
             Lexeme::IntConstant(ref v) => stack.push(Expression::Value(*v)),
+            Lexeme::StringConstant(ref v) => stack.push(Expression::StringValue(*v)),
             Lexeme::Identifier(ref name) => stack.push(Expression::Variable(name.clone())),
             Lexeme::Operator(ref op) => {
                 let r = stack.pop().unwrap();
@@ -69,7 +70,8 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Vec<Lexeme> {
         
         match tok {
             Lexeme::Identifier(_) => output.push(tok),
-            Lexeme::IntConstant(_v) => output.push(tok),
+            Lexeme::IntConstant(_) => output.push(tok),
+            Lexeme::StringConstant(_) => output.push(tok),
             Lexeme::Operator(o1) => {
                 while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
                     if get_precedence(&o1) <= get_precedence(&o2) {

@@ -38,6 +38,14 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "}" => Lexeme::EndBlock,
         ";" => Lexeme::EndOfStatement,
         _ => {
+            if let Some(x) = token.chars().next() {
+                if let Some(y) = token.chars().last() {
+                    if x == '"' && y == '"' {
+                        // Keep the double quotes for now
+                        Lexeme::StringConstant(token.to_string())
+                    }
+                }
+            }
             if token.chars().all(|ch| ch.is_alphanumeric()) {
                 Lexeme::Identifier(token.to_string())
             }
