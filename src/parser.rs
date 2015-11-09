@@ -6,15 +6,6 @@ use lexeme::Lexeme;
 use lexeme::OperatorType;
 use token_stream::TokenStream;
 
-
-static OPERATOR_ORDER: &'static [OperatorType] = &[
-    OperatorType::Plus, OperatorType::Minus,
-    OperatorType::CompareGreater, OperatorType::CompareLess,
-    OperatorType::CompareGreaterOrEqual, OperatorType::CompareLessOrEqual,
-    OperatorType::CompareNotEqual, OperatorType::CompareEqual,
-
-    OperatorType::Star, OperatorType::Divide];
-
 // FIXME: Do we really want to do this?
 fn optype_to_op(op: &OperatorType) -> BinaryOp {
     match *op {
@@ -32,9 +23,20 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
     }
 }
 
-fn precedence_leq(a: &OperatorType, b: &OperatorType) -> bool {
-    OPERATOR_ORDER.iter().position(|x| x == a) < 
-        OPERATOR_ORDER.iter().position(|x| x == b)
+fn get_precedence(op: &OperatorType) -> i32 {
+    match *op {
+        OperatorType::Plus => 0,
+        OperatorType::Minus => 0,
+        OperatorType::CompareEqual => 1,
+        OperatorType::CompareGreater => 1,
+        OperatorType::CompareLess => 1,
+        OperatorType::CompareGreaterOrEqual => 1,
+        OperatorType::CompareLessOrEqual => 1,
+        OperatorType::CompareNotEqual => 1,
+        OperatorType::Star => 2,
+        OperatorType::Divide => 2,
+        OperatorType::Assign => panic!("Illegal op")
+    }
 }
 
 fn rpn_to_ast(rpn_tokens: &Vec<Lexeme>) -> Expression {
@@ -70,7 +72,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Vec<Lexeme> {
             Lexeme::IntConstant(_v) => output.push(tok),
             Lexeme::Operator(o1) => {
                 while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
-                    if precedence_leq(&o1, &o2) {
+                    if get_precedence(&o1) <= get_precedence(&o2) {
                         output.push(Lexeme::Operator(o2));
                     }
                     else {

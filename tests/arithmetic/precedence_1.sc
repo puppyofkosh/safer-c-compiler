@@ -1,5 +1,5 @@
-// 15
+// 2
 fn main (arg)
 {
-        print 1 * 5 + 2 * 5 ;
+        print 1 - 2 + 3 ;
 }
