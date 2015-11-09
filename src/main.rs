@@ -37,8 +37,8 @@ fn main() {
     let program_text = result.unwrap();
 
     let mut tokens = scanner::get_tokens(&program_text);
-    let ast = parser::parse_block(&mut tokens);
+    let function_asts = parser::parse_program(&mut tokens);
 
     let mut code_generator = x86_code_generator::X86CodeGenerator::new();
-    code_generator.generate_code(&ast);
+    code_generator.generate_code(&function_asts);
 }

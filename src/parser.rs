@@ -1,6 +1,7 @@
 use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
+use ast::Function;
 use lexeme::Lexeme;
 use lexeme::OperatorType;
 use token_stream::TokenStream;
@@ -184,18 +185,38 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
     }
 }
 
-fn parse_function(tokens: &mut TokenStream) -> Statement {
+fn parse_call(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Call);
-    assert(!tokens.is_empty());
+    assert!(!tokens.is_empty());
 
-    if let Lexeme::Identifier(name) = tokens.consume() {
+    let tok = tokens.consume();
+    if let Lexeme::Identifier(name) = tok {
         let expr = parse_expression(tokens);
         assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
 
-        Statement::Call(name, Box::new(expr));
+        Statement::Call(name, Box::new(expr))
     } else {
         panic!("Expected an identifier");
     }
+}
+
+fn parse_function(tokens: &mut TokenStream) -> Function {
+    assert_eq!(tokens.consume(), Lexeme::Function);
+    assert!(!tokens.is_empty());
+
+    if let Lexeme::Identifier(fn_name) = tokens.consume() {
+        assert_eq!(tokens.consume(), Lexeme::LParen);
+        
+        if let Lexeme::Identifier(fn_arg) = tokens.consume() {
+            assert_eq!(tokens.consume(), Lexeme::RParen);
+            
+            let statements = parse_block(tokens);
+            return Function {name: fn_name,
+                             statements: statements,
+                             arg: fn_arg};
+        }
+    }
+    panic!("Expected fn <function name> (<arg>)");
 }
 
 fn parse_statement(tokens: &mut TokenStream) -> Statement {
@@ -207,7 +228,7 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
         Lexeme::If => parse_if(tokens),
         Lexeme::While => parse_while(tokens),
         Lexeme::Let => parse_declaration(tokens),
-        Lexeme::Call => parse_function(tokens),
+        Lexeme::Call => parse_call(tokens),
         Lexeme::Identifier(_s) => parse_assignment(tokens),
         _ => panic!("Unexpected lexeme {:?}", token),
     }
@@ -228,4 +249,12 @@ pub fn parse_block(tokens: &mut TokenStream) -> Vec<Statement> {
     }
 
     panic!("Block did not end with a EndBlock lexeme");
+}
+
+pub fn parse_program(tokens: &mut TokenStream) -> Vec<Function> {
+    let mut out = Vec::new();
+    while !tokens.is_empty() {
+        out.push(parse_function(tokens));
+    }
+    out
 }

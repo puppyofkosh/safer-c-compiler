@@ -20,6 +20,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "print" => Lexeme::Print,
         "let" => Lexeme::Let,
         "call" => Lexeme::Call,
+        "fn" => Lexeme::Function,
         "=" => Lexeme::Operator(OperatorType::Assign),
         "==" => Lexeme::Operator(OperatorType::CompareEqual),
         ">" => Lexeme::Operator(OperatorType::CompareGreater),

@@ -29,3 +29,9 @@ pub enum Statement {
     Assign(String, Box<Expression>),
     Call(String, Box<Expression>),
 }
+
+pub struct Function {
+    pub name: String,
+    pub statements: Vec<Statement>,
+    pub arg: String,
+}

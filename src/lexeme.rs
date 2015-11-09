@@ -16,6 +16,7 @@ pub enum OperatorType {
 #[derive(PartialEq, Debug, Clone)]
 pub enum Lexeme {
     Call,
+    Function,
     If,
     While,
     IntConstant(i32),

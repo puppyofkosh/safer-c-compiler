@@ -1,6 +1,7 @@
 use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
+use ast::Function;
 
 use assembly::Instruction;
 use assembly::Instruction::*;
@@ -200,6 +201,9 @@ impl X86CodeGenerator {
                 instructions.push(Move(reg, Dereference(Box::new(EBP),
                                                         offset)));
             }
+            Statement::Call(ref fn_name, ref arg_expr) => {
+                panic!("Still not sure how to do this!");
+            }
         }
     }
 
@@ -273,28 +277,42 @@ impl X86CodeGenerator {
         }
         EAX
     }
+
+    fn generate_code_for_function(&mut self, fun: &Function) -> String {
+        let name = if &fun.name == "main" {
+            "_start".to_string()
+        } else {
+            fun.name.clone()
+        };
+
+        let mut code = format!("{}:\n\
+                                pushl %ebp\n\
+                                movl %esp, %ebp\n",
+                               name);
+
+        // TODO: Insert argument to identifier_to_offset
+
+        let mut instructions = Vec::new();
+        self.evaluate_block(&fun.statements, &mut instructions);
+        code.push_str(&instruction_list_to_asm(&instructions));
+        code
+    }
 }
 
 impl GeneratesCode for X86CodeGenerator {
-    fn generate_code(&mut self, tree: &Vec<Statement>) {
+
+    fn generate_code(&mut self, functions: &Vec<Function>) {
         let asm_header = ".section .data\n\
                           decimal_format_str: .asciz \"%d\\n\"\n\
                           .section .text\n\
-                          .globl _start\n\
-                          _start:\n";
+                          .globl _start\n";
         let function_start = "pushl %ebp\n\
                               movl %esp, %ebp\n";
         let mut code = asm_header.to_string();
-        code.push_str(function_start);
+        for function in functions {
+            code.push_str(&self.generate_code_for_function(function));
+        }
 
-        let mut instructions = Vec::new();
-        self.evaluate_block(tree, &mut instructions);
-
-        // For now we MANUALLY return 0 at the end of our program.
-        self.evaluate_statement(&Statement::Return(Box::new(Expression::Value(0))),
-                           &mut instructions);
-        code.push_str(&instruction_list_to_asm(&instructions));
-        
         // Bunch of file opening crap
         let path = Path::new("out/code.s");
 
