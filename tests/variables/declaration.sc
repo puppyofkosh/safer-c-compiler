@@ -1,4 +1,5 @@
 // 13
+fn main (arg)
 {
         let x = 11 ;
         let y = 12 ;

@@ -1,4 +1,5 @@
 // 1
+fn main (arg)
 {
     print 0 ;
     if 123

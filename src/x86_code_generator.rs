@@ -201,7 +201,7 @@ impl X86CodeGenerator {
                 instructions.push(Move(reg, Dereference(Box::new(EBP),
                                                         offset)));
             }
-            Statement::Call(ref fn_name, ref arg_expr) => {
+            Statement::Call(ref _fn_name, ref _arg_expr) => {
                 panic!("Still not sure how to do this!");
             }
         }
@@ -294,6 +294,11 @@ impl X86CodeGenerator {
 
         let mut instructions = Vec::new();
         self.evaluate_block(&fun.statements, &mut instructions);
+        if name == "_start" {
+            let ret_stmt = Statement::Return(Box::new(Expression::Value(0)));
+            self.evaluate_statement(&ret_stmt, &mut instructions);
+        }
+
         code.push_str(&instruction_list_to_asm(&instructions));
         code
     }
@@ -306,8 +311,6 @@ impl GeneratesCode for X86CodeGenerator {
                           decimal_format_str: .asciz \"%d\\n\"\n\
                           .section .text\n\
                           .globl _start\n";
-        let function_start = "pushl %ebp\n\
-                              movl %esp, %ebp\n";
         let mut code = asm_header.to_string();
         for function in functions {
             code.push_str(&self.generate_code_for_function(function));
