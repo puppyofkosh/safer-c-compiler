@@ -173,13 +173,8 @@ impl X86CodeGenerator {
             instructions.push(Move(out_reg, EAX));
         }
 
-        let stack_space_to_free = -1 * self.current_stack_offset;
-        instructions.push(Add(IntConstant(stack_space_to_free),
-                              ESP));
+        instructions.push(Move(EBP, ESP));
         instructions.push(Pop(EBP));
-        // FIXME: For now we assume retval is in EAX, then we put it
-        // into ebx
-        // TODO: Give stack space back
         if self.current_function == "_start" {
             instructions.push(Move(EAX, EBX));
             instructions.push(Move(IntConstant(1), EAX));
@@ -188,7 +183,6 @@ impl X86CodeGenerator {
         else {
             instructions.push(Instruction::OtherStatic("ret"));
         }
-        
     }
 
     fn evaluate_statement(&mut self,
