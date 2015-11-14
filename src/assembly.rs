@@ -12,6 +12,7 @@ pub enum Operand {
 
 pub enum Instruction {
     Add(Operand, Operand),
+    Call(String),
     Multiply(Operand, Operand),
     Subtract(Operand, Operand),
     Divide(Operand),
@@ -24,5 +25,6 @@ pub enum Instruction {
     Jump(String),
     Label(String),
     Other(String),
+    OtherStatic(&'static str),
     Comment(String),
 }

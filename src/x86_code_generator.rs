@@ -46,6 +46,7 @@ fn instruction_to_asm(ins: &Instruction) -> String {
         Push(ref a) => format!("pushl {}", op_to_str(a)),
         Pop(ref a) => format!("popl {}", op_to_str(a)),
         Instruction::Other(ref st) => st.clone(),
+        Instruction::OtherStatic(ref st) => st.to_string(),
         Compare(ref a, ref b) => format!("cmp {}, {}", op_to_str(a),
                                          op_to_str(b)),
         JumpIfEqual(ref a) => format!("je {}", a),
@@ -53,6 +54,7 @@ fn instruction_to_asm(ins: &Instruction) -> String {
         Jump(ref a) => format!("jmp {}", a),
         Label(ref l) => format!("{}:", l),
         Comment(ref s) => format!("# {}", s),
+        Call(ref name) => format!("call {}", name),
     };
 
     s.push_str("\n");
@@ -84,6 +86,7 @@ pub struct X86CodeGenerator {
     identifier_to_offset: HashMap<String, i32>,
     blocks: Vec<ActiveBlock>,
     current_stack_offset: i32,
+    current_function: String,
 
     // string
     string_to_label: HashMap<String, String>,
@@ -96,6 +99,8 @@ impl X86CodeGenerator {
             label_num: 0,
             identifier_to_offset: HashMap::new(),
             blocks: Vec::new(),
+            current_function: String::new(),
+
             current_stack_offset: 0,
             string_to_label: HashMap::new(),
             current_label_num: 0,
@@ -160,23 +165,38 @@ impl X86CodeGenerator {
         }
     }
 
+    fn evaluate_return_statement(&mut self, value: &Expression,
+                                 instructions: &mut Vec<Instruction>) {
+        let out_reg = self.evaluate_expression(&value, instructions);
+        // For now everything goes into eax
+        if out_reg != EAX {
+            instructions.push(Move(out_reg, EAX));
+        }
+
+        let stack_space_to_free = -1 * self.current_stack_offset;
+        instructions.push(Add(IntConstant(stack_space_to_free),
+                              ESP));
+        instructions.push(Pop(EBP));
+        // FIXME: For now we assume retval is in EAX, then we put it
+        // into ebx
+        // TODO: Give stack space back
+        if self.current_function == "_start" {
+            instructions.push(Move(EAX, EBX));
+            instructions.push(Move(IntConstant(1), EAX));
+            instructions.push(Instruction::OtherStatic("int $0x80"));
+        }
+        else {
+            instructions.push(Instruction::OtherStatic("ret"));
+        }
+        
+    }
+
     fn evaluate_statement(&mut self,
                           tree: &Statement,
                           instructions: &mut Vec<Instruction>) {
         match *tree {
             Statement::Return(ref v) => {
-                let out_reg = self.evaluate_expression(&v, instructions);
-                // For now everything goes into eax
-                assert_eq!(out_reg, EAX);
-
-                instructions.push(Pop(EBP));
-                // FIXME: For now we assume retval is in EAX, then we put it
-                // into ebx
-                // TODO: Give stack space back
-                instructions.push(Move(EAX, EBX));
-                //instructions.push(Move(IntConstant(0), EBX));
-                instructions.push(Move(IntConstant(1), EAX));
-                instructions.push(Instruction::Other("int $0x80".to_string()));
+                self.evaluate_return_statement(v, instructions);
             }
             Statement::Print(ref expr) => {
                 instructions.push(Comment("Evaluating print statement".to_string()));
@@ -251,8 +271,12 @@ impl X86CodeGenerator {
                 instructions.push(Move(reg, Dereference(Box::new(EBP),
                                                         offset)));
             }
-            Statement::Call(ref _fn_name, ref arg_expr) => {
-                self.evaluate_expression(arg_expr, instructions);
+            Statement::Call(ref fn_name, ref arg_expr) => {
+                let reg = self.evaluate_expression(arg_expr, instructions);
+                instructions.push(Push(reg));
+                
+                instructions.push(Call(fn_name.clone()));
+                instructions.push(Add(IntConstant(WORD_SIZE), ESP));
             }
         }
     }
@@ -337,14 +361,15 @@ impl X86CodeGenerator {
             fun.name.clone()
         };
 
-        let mut code = format!("{}:\n\
-                                pushl %ebp\n\
-                                movl %esp, %ebp\n",
-                               name);
+        self.current_function = name.clone();
 
+        let mut code = String::new();
         // TODO: Insert argument to identifier_to_offset
-
         let mut instructions = Vec::new();
+        instructions.push(Label(name.clone()));
+        instructions.push(Push(EBP));
+        instructions.push(Move(ESP, EBP));
+
         self.evaluate_block(&fun.statements, &mut instructions);
         if name == "_start" {
             let ret_stmt = Statement::Return(Box::new(Expression::Value(0)));

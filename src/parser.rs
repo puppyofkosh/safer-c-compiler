@@ -65,6 +65,12 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Vec<Lexeme> {
     let mut operator_stack = Vec::new();
     let mut output = Vec::new();
 
+    // Keep track of number of parens. Sometimes we will have an expression
+    // followed by a parenthese like call((abc + bcd)), and the last paren is
+    // not part of the expression.
+    let mut num_left_parens = 0;
+    let mut num_right_parens = 0;
+
     while !tokens.is_empty() {
         let tok = tokens.peek();
         
@@ -85,15 +91,26 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Vec<Lexeme> {
                 }
                 operator_stack.push(Lexeme::Operator(o1));
             }
-            Lexeme::LParen => operator_stack.push(tok),
+            Lexeme::LParen => {
+                operator_stack.push(tok);
+                num_left_parens += 1;
+            }
+                
             Lexeme::RParen => {
+                // Either the parens are mismatched, or we don't want
+                // this right paren. 
+                if num_left_parens == num_right_parens {
+                    break;
+                }
+
+                num_right_parens += 1;
                 while let Some(lex) = operator_stack.pop() {
                     if lex == Lexeme::LParen {
                         break;
                     }
                     
                     output.push(lex);
-                }   
+                }
             }
             _ => break,
         }
@@ -191,17 +208,20 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
 
 fn parse_call(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Call);
+    assert_eq!(tokens.consume(), Lexeme::LParen);
     assert!(!tokens.is_empty());
 
     let tok = tokens.consume();
-    if let Lexeme::Identifier(name) = tok {
-        let expr = parse_expression(tokens);
+    if let Lexeme::Identifier(fn_name) = tok {
+        assert_eq!(tokens.consume(), Lexeme::Comma);
+        let arg_expr = parse_expression(tokens);
+        assert_eq!(tokens.consume(), Lexeme::RParen);
         assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
 
-        Statement::Call(name, Box::new(expr))
+        Statement::Call(fn_name, Box::new(arg_expr))
     } else {
-        panic!("Expected an identifier");
-    }
+        panic!("Expected a function name");
+  }
 }
 
 fn parse_function(tokens: &mut TokenStream) -> Function {

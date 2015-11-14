@@ -1,11 +1,13 @@
 // 5
 fn test (arg)
 {
-        print 5;
+        let v = 5;
+        print v;
+        return v;
 }
 
 fn main (arg)
 {
-        print 5;
+        call(test, 0) ;
         return 0;
 }

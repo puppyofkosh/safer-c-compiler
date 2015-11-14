@@ -37,6 +37,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "{" => Lexeme::StartBlock,
         "}" => Lexeme::EndBlock,
         ";" => Lexeme::EndOfStatement,
+        "," => Lexeme::Comma,
         _ => {
                 if let Some(x) = token.chars().next() {
                     if let Some(y) = token.chars().last() {
@@ -107,7 +108,6 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
             continue;
         }
 
-
         let is_ws = ch.is_whitespace();
         let alphanum_changed = ch.is_alphanumeric() != all_chars_alphanumeric;
         if s.len() > 0 && (is_ws || alphanum_changed) {
@@ -117,7 +117,6 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
 
         if alphanum_changed && !is_ws {
             all_chars_alphanumeric = ch.is_alphanumeric();
-
         }
 
         if !is_ws {

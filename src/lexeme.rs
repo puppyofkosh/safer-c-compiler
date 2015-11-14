@@ -31,4 +31,5 @@ pub enum Lexeme {
     EndOfStatement, // ;
     StartBlock, // {
     EndBlock,
+    Comma,
 }
