@@ -70,6 +70,10 @@ pub struct X86CodeGenerator {
     // keep track of where in memory variables are stored
     identifier_to_offset: HashMap<String, i32>,
     current_stack_offset: i32,
+
+    // string
+    string_to_label: HashMap<String, String>,
+    current_label_num: i32,
 }
 
 impl X86CodeGenerator {
@@ -78,6 +82,8 @@ impl X86CodeGenerator {
             label_num: 0,
             identifier_to_offset: HashMap::new(),
             current_stack_offset: 0,
+            string_to_label: HashMap::new(),
+            current_label_num: 0,
         }
     }
 
@@ -98,6 +104,12 @@ impl X86CodeGenerator {
                 // FIXME: We should probably use more than just the register
                 // EAX...
                 instructions.push(Move(IntConstant(*v), EAX));
+                EAX
+            }
+            Expression::StringValue(ref v) => {
+                let label = format!(".LC{}", self.current_label_num);
+                self.current_label_num += 1;
+                self.string_to_label.insert(v.clone(), label.clone());
                 EAX
             }
             Expression::BinaryOp(ref op, ref l, ref r) => {
@@ -316,6 +328,13 @@ impl GeneratesCode for X86CodeGenerator {
             code.push_str(&self.generate_code_for_function(function));
         }
 
+        let mut complete_code = String::new();
+        complete_code.push_str(".section .rodata\n");
+        for (st, label) in self.string_to_label.iter() {
+            complete_code.push_str(&format!("{}:\n\
+                                            .string {}\n", label, st));
+        }
+        complete_code.push_str(&code);
         // Bunch of file opening crap
         let path = Path::new("out/code.s");
 
@@ -326,7 +345,7 @@ impl GeneratesCode for X86CodeGenerator {
             Ok(file) => file,
         };
 
-        match file.write_all(code.as_bytes()) {
+        match file.write_all(complete_code.as_bytes()) {
             Err(why) => {
                 panic!("couldn't write to {}: {}", path.display(),
                        Error::description(&why))

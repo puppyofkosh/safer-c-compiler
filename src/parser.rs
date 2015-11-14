@@ -45,7 +45,7 @@ fn rpn_to_ast(rpn_tokens: &Vec<Lexeme>) -> Expression {
     for tok in rpn_tokens {
         match *tok {
             Lexeme::IntConstant(ref v) => stack.push(Expression::Value(*v)),
-            Lexeme::StringConstant(ref v) => stack.push(Expression::StringValue(*v)),
+            Lexeme::StringConstant(ref v) => stack.push(Expression::StringValue(v.clone())),
             Lexeme::Identifier(ref name) => stack.push(Expression::Variable(name.clone())),
             Lexeme::Operator(ref op) => {
                 let r = stack.pop().unwrap();

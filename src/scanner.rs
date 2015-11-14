@@ -38,14 +38,14 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "}" => Lexeme::EndBlock,
         ";" => Lexeme::EndOfStatement,
         _ => {
-            if let Some(x) = token.chars().next() {
-                if let Some(y) = token.chars().last() {
-                    if x == '"' && y == '"' {
-                        // Keep the double quotes for now
-                        Lexeme::StringConstant(token.to_string())
+                if let Some(x) = token.chars().next() {
+                    if let Some(y) = token.chars().last() {
+                        if x == '"' && y == '"' {
+                            // Keep the double quotes for now
+                            return Lexeme::StringConstant(token.to_string());
+                        }
                     }
                 }
-            }
             if token.chars().all(|ch| ch.is_alphanumeric()) {
                 Lexeme::Identifier(token.to_string())
             }
@@ -84,6 +84,29 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
                 break;
             }
         }        
+        
+        if ch == '"' {
+            s.push(ch);
+            index += 1;
+            if index == chars.len() {
+                panic!("exceeds the length of token stream!");
+            } else {
+                let mut ch2 = chars[index];
+                while ch2 != '"' && index < chars.len() {
+                    s.push(ch2);
+                    index += 1;
+                    ch2 = chars[index];
+                }
+                if ch2 == '"' {
+                    s.push(ch2);
+                } else {
+                    panic!("no right quote mark!");
+                }
+                index += 1;
+            }
+            continue;
+        }
+
 
         let is_ws = ch.is_whitespace();
         let alphanum_changed = ch.is_alphanumeric() != all_chars_alphanumeric;
