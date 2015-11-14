@@ -362,6 +362,7 @@ impl X86CodeGenerator {
         };
 
         self.current_function = name.clone();
+        self.identifier_to_offset.insert(fun.arg.clone(), WORD_SIZE * 2);
 
         let mut code = String::new();
         // TODO: Insert argument to identifier_to_offset
@@ -375,6 +376,9 @@ impl X86CodeGenerator {
             let ret_stmt = Statement::Return(Box::new(Expression::Value(0)));
             self.evaluate_statement(&ret_stmt, &mut instructions);
         }
+
+        // Remove arguments from active identifiers
+        self.identifier_to_offset.remove(&fun.arg);
 
         code.push_str(&instruction_list_to_asm(&instructions));
         code

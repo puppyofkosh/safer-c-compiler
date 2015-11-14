@@ -7,6 +7,7 @@ errs = []
 subdirs = os.listdir(test_dir)
 for d in subdirs:
     tests = os.listdir(os.path.join(test_dir, d))
+    tests = [t for t in tests if t.endswith(".sc")]
     for t in tests:
         print "Building {0}".format(t)
         # Get the first line of t
