@@ -16,8 +16,9 @@ use std::fs::File;
 use std::path::Path;
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 
-
+static WORD_SIZE: i32 = 4;
 
 fn op_to_str(o: &Operand) -> String {
     match *o {
@@ -64,11 +65,24 @@ fn instruction_list_to_asm(instructions: &Vec<Instruction>) -> String {
 }
 
 
+struct ActiveBlock {
+    declared_variables: HashSet<String>,
+}
+
+impl ActiveBlock {
+    pub fn new() -> ActiveBlock {
+        ActiveBlock {
+            declared_variables: HashSet::new(),
+        }
+    }
+}
+
 pub struct X86CodeGenerator {
     label_num: i32,
 
     // keep track of where in memory variables are stored
     identifier_to_offset: HashMap<String, i32>,
+    blocks: Vec<ActiveBlock>,
     current_stack_offset: i32,
 
     // string
@@ -81,6 +95,7 @@ impl X86CodeGenerator {
         X86CodeGenerator {
             label_num: 0,
             identifier_to_offset: HashMap::new(),
+            blocks: Vec::new(),
             current_stack_offset: 0,
             string_to_label: HashMap::new(),
             current_label_num: 0,
@@ -89,8 +104,29 @@ impl X86CodeGenerator {
 
     fn evaluate_block(&mut self, statements: &Vec<Statement>,
                       instructions: &mut Vec<Instruction>) {
+        self.blocks.push(ActiveBlock::new());
         for stmt in statements {
             self.evaluate_statement(stmt, instructions);
+        }
+
+        // Wipe out all of the variables we declared in this block, as
+        // we shouldn't able to use them again
+        match self.blocks.pop() {
+            None => panic!("Invalid sate. Why is there no current block?"),
+            Some(block) => {
+                assert!(block.declared_variables.len() < i32::max_value() as usize);
+                let previous_offset = self.current_stack_offset;
+                for variable in block.declared_variables {
+                    self.current_stack_offset += WORD_SIZE;
+                    self.identifier_to_offset.remove(&variable);
+                }
+                
+                // Give the stack space back
+                let space_freed = previous_offset - self.current_stack_offset;
+                if space_freed > 0 {
+                    instructions.push(Add(IntConstant(space_freed), ESP));
+                }
+            }
         }
     }
 
@@ -136,6 +172,7 @@ impl X86CodeGenerator {
                 instructions.push(Pop(EBP));
                 // FIXME: For now we assume retval is in EAX, then we put it
                 // into ebx
+                // TODO: Give stack space back
                 instructions.push(Move(EAX, EBX));
                 //instructions.push(Move(IntConstant(0), EBX));
                 instructions.push(Move(IntConstant(1), EAX));
@@ -194,13 +231,14 @@ impl X86CodeGenerator {
                 // Evaluate the expression and put it on the stack
                 let reg = self.evaluate_expression(expr, instructions);
                 
-                let word_size = 4;
-                self.current_stack_offset -= word_size;
+                self.current_stack_offset -= WORD_SIZE;
                 self.identifier_to_offset.insert(name.clone(),
                                                  self.current_stack_offset);
+                let mut current_block = self.blocks.last_mut().unwrap();
+                current_block.declared_variables.insert(name.clone());
 
                 // TODO: Allocate all stack space in advance
-                instructions.push(Subtract(IntConstant(word_size), ESP));
+                instructions.push(Subtract(IntConstant(WORD_SIZE), ESP));
                 instructions.push(Move(reg, Dereference(Box::new(EBP),
                                                         self.current_stack_offset)));
             }
@@ -213,8 +251,8 @@ impl X86CodeGenerator {
                 instructions.push(Move(reg, Dereference(Box::new(EBP),
                                                         offset)));
             }
-            Statement::Call(ref _fn_name, ref _arg_expr) => {
-                panic!("Still not sure how to do this!");
+            Statement::Call(ref _fn_name, ref arg_expr) => {
+                self.evaluate_expression(arg_expr, instructions);
             }
         }
     }
@@ -235,12 +273,11 @@ impl X86CodeGenerator {
         if right_register != EAX {
             instructions.push(Move(right_register, EAX));
         }
-
+ 
         // put the value of the left expression into EBX
         instructions.push(Pop(EBX));
 
         match *op {
-
             BinaryOp::Plus => instructions.push(Add(EBX, EAX)),
             BinaryOp::Multiply => instructions.push(Multiply(EBX, EAX)),
             BinaryOp::Minus => {
@@ -291,6 +328,9 @@ impl X86CodeGenerator {
     }
 
     fn generate_code_for_function(&mut self, fun: &Function) -> String {
+        assert!(self.identifier_to_offset.is_empty());
+        assert!(self.blocks.is_empty());
+
         let name = if &fun.name == "main" {
             "_start".to_string()
         } else {
