@@ -1,3 +1,4 @@
+use ast::FunctionCall;
 use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
@@ -56,6 +57,10 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
             Lexeme::Identifier(name) => output.push(Expression::Variable(name.clone())),
             Lexeme::IntConstant(v) => output.push(Expression::Value(v)),
             Lexeme::StringConstant(s) => output.push(Expression::StringValue(s.clone())),
+            Lexeme::Call => {
+                tokens.push(tok);
+                output.push(Expression::Call(parse_call(tokens)));
+            }
             Lexeme::Operator(o1) => {
                 while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
                     if get_precedence(&o1) <= get_precedence(&o2) {
@@ -197,7 +202,7 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
     }
 }
 
-fn parse_call(tokens: &mut TokenStream) -> Statement {
+fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
     assert_eq!(tokens.consume(), Lexeme::Call);
     assert_eq!(tokens.consume(), Lexeme::LParen);
     assert!(!tokens.is_empty());
@@ -207,9 +212,9 @@ fn parse_call(tokens: &mut TokenStream) -> Statement {
         assert_eq!(tokens.consume(), Lexeme::Comma);
         let arg_expr = parse_expression(tokens);
         assert_eq!(tokens.consume(), Lexeme::RParen);
-        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
 
-        Statement::Call(fn_name, Box::new(arg_expr))
+        FunctionCall {name:fn_name,
+                      arg_expr: Box::new(arg_expr)} 
     } else {
         panic!("Expected a function name");
   }
@@ -243,7 +248,11 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
         Lexeme::If => parse_if(tokens),
         Lexeme::While => parse_while(tokens),
         Lexeme::Let => parse_declaration(tokens),
-        Lexeme::Call => parse_call(tokens),
+        Lexeme::Call => {
+            let fn_call = parse_call(tokens);
+            assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+            Statement::Call(fn_call)
+        },
         Lexeme::Identifier(_s) => parse_assignment(tokens),
         _ => panic!("Unexpected lexeme {:?}", token),
     }

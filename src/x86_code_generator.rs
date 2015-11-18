@@ -141,6 +141,14 @@ impl X86CodeGenerator {
                            expr: &Expression,
                            instructions: &mut Vec<Instruction>) -> Operand {
         match *expr {
+            Expression::Call(ref fn_call) => {
+                let reg = self.evaluate_expression(&fn_call.arg_expr, instructions);
+                instructions.push(Push(reg));
+                
+                instructions.push(Call(fn_call.name.clone()));
+                instructions.push(Add(IntConstant(WORD_SIZE), ESP));
+                EAX
+            }
             Expression::Value(ref v) => {
                 // FIXME: We should probably use more than just the register
                 // EAX...
@@ -265,11 +273,11 @@ impl X86CodeGenerator {
                 instructions.push(Move(reg, Dereference(Box::new(EBP),
                                                         offset)));
             }
-            Statement::Call(ref fn_name, ref arg_expr) => {
-                let reg = self.evaluate_expression(arg_expr, instructions);
+            Statement::Call(ref fn_call) => {
+                let reg = self.evaluate_expression(&fn_call.arg_expr, instructions);
                 instructions.push(Push(reg));
                 
-                instructions.push(Call(fn_name.clone()));
+                instructions.push(Call(fn_call.name.clone()));
                 instructions.push(Add(IntConstant(WORD_SIZE), ESP));
             }
         }

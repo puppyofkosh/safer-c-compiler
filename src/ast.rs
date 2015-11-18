@@ -1,4 +1,11 @@
 #[derive(Debug)]
+pub struct FunctionCall {
+    pub name: String,
+    pub arg_expr: Box<Expression>,
+}
+
+
+#[derive(Debug)]
 pub enum BinaryOp {
     Plus,
     Minus,
@@ -17,7 +24,8 @@ pub enum Expression {
     Value(i32),
     Variable(String),
     StringValue(String),
-    BinaryOp(BinaryOp, Box<Expression>, Box<Expression>)
+    BinaryOp(BinaryOp, Box<Expression>, Box<Expression>),
+    Call(FunctionCall),
 }
 
 #[derive(Debug)]
@@ -28,7 +36,8 @@ pub enum Statement {
     While(Box<Expression>, Vec<Statement>),
     Let(String, Box<Expression>),
     Assign(String, Box<Expression>),
-    Call(String, Box<Expression>),
+    //Call(String, Box<Expression>),
+    Call(FunctionCall),
 }
 
 pub struct Function {
@@ -36,3 +45,4 @@ pub struct Function {
     pub statements: Vec<Statement>,
     pub arg: String,
 }
+
