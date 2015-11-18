@@ -12,3 +12,10 @@ The output of the program will then show in the terminal.
 
 [How to run the tester]
 python tester.py
+
+[To do list (stuff we need to do!)]
+Else statements
+functions with multiple args
+for loops
+rust safety
+pointers
