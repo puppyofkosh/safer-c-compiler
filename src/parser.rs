@@ -39,29 +39,7 @@ fn get_precedence(op: &OperatorType) -> i32 {
     }
 }
 
-fn rpn_to_ast(rpn_tokens: &Vec<Lexeme>) -> Expression {
-    let mut stack = Vec::new();
-
-    for tok in rpn_tokens {
-        match *tok {
-            Lexeme::IntConstant(ref v) => stack.push(Expression::Value(*v)),
-            Lexeme::StringConstant(ref v) => stack.push(Expression::StringValue(v.clone())),
-            Lexeme::Identifier(ref name) => stack.push(Expression::Variable(name.clone())),
-            Lexeme::Operator(ref op) => {
-                let r = stack.pop().unwrap();
-                let l = stack.pop().unwrap();
-                stack.push(Expression::BinaryOp(optype_to_op(op),
-                                                Box::new(l),
-                                                Box::new(r)));
-            }
-            _ => panic!("Invalid lexeme"),
-        }
-    }
-    
-    stack.pop().unwrap()
-}
-
-fn two_stack_algo(tokens: &mut TokenStream) -> Vec<Lexeme> {
+fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     let mut operator_stack = Vec::new();
     let mut output = Vec::new();
 
@@ -72,16 +50,19 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Vec<Lexeme> {
     let mut num_right_parens = 0;
 
     while !tokens.is_empty() {
-        let tok = tokens.peek();
+        let tok = tokens.consume();
         
         match tok {
-            Lexeme::Identifier(_) => output.push(tok),
-            Lexeme::IntConstant(_) => output.push(tok),
-            Lexeme::StringConstant(_) => output.push(tok),
+            Lexeme::Identifier(name) => output.push(Expression::Variable(name.clone())),
+            Lexeme::IntConstant(v) => output.push(Expression::Value(v)),
+            Lexeme::StringConstant(s) => output.push(Expression::StringValue(s.clone())),
             Lexeme::Operator(o1) => {
                 while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
                     if get_precedence(&o1) <= get_precedence(&o2) {
-                        output.push(Lexeme::Operator(o2));
+                        let r = output.pop().unwrap();
+                        let l = output.pop().unwrap();
+                        output.push(Expression::BinaryOp(optype_to_op(&o2),
+                                                         Box::new(l), Box::new(r)));
                     }
                     else {
                         // push it back on the stack
@@ -95,43 +76,53 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Vec<Lexeme> {
                 operator_stack.push(tok);
                 num_left_parens += 1;
             }
-                
             Lexeme::RParen => {
                 // Either the parens are mismatched, or we don't want
                 // this right paren. 
                 if num_left_parens == num_right_parens {
+                    tokens.push(tok);
                     break;
                 }
 
                 num_right_parens += 1;
                 while let Some(lex) = operator_stack.pop() {
-                    if lex == Lexeme::LParen {
+                    if let Lexeme::Operator(op) = lex {
+                        let r = output.pop().unwrap();
+                        let l = output.pop().unwrap();
+                        output.push(Expression::BinaryOp(optype_to_op(&op),
+                                                         Box::new(l), Box::new(r)));
+                    }
+                    else {
                         break;
                     }
-                    
-                    output.push(lex);
                 }
             }
-            _ => break,
+            _ => {
+                // We don't know what this token is, so we give it back.
+                tokens.push(tok);
+                break;
+            },
         }
-
-        tokens.consume();
     }
 
     while let Some(op) = operator_stack.pop() {
-        if op == Lexeme::LParen || op == Lexeme::RParen {
+        if let Lexeme::Operator(o) = op {
+            let r = output.pop().unwrap();
+            let l = output.pop().unwrap();
+            output.push(Expression::BinaryOp(optype_to_op(&o),
+                                             Box::new(l), Box::new(r))); 
+        }
+        else {
             panic!("Mismatched parens");
         }
-        
-        output.push(op);
     }
     
-    output
+    output.pop().unwrap()
 }
 
 fn parse_expression(tokens: &mut TokenStream) -> Expression {
     let rpn = two_stack_algo(tokens);
-    return rpn_to_ast(&rpn);
+    rpn
 }
 
 fn parse_return(tokens: &mut TokenStream) -> Statement {

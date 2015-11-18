@@ -19,6 +19,10 @@ impl TokenStream {
         self.token_list.front().expect("no more tokens!").clone()
     }
 
+    pub fn push(&mut self, tok: Lexeme) {
+        self.token_list.push_front(tok);
+    }
+
     pub fn is_empty(&self) -> bool {
         self.token_list.is_empty()
     }
