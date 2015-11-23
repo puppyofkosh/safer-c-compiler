@@ -28,7 +28,8 @@ fn op_to_str(o: &Operand) -> String {
         EBP => "%ebp".to_string(),
         ESP => "%esp".to_string(),
         IntConstant(i) => "$".to_string() + &i.to_string(),
-        Variable(n) => "$".to_string() + &n.to_string(),
+        VariableStatic(n) => "$".to_string() + &n.to_string(),
+        Variable(ref s) => "$".to_string() + &s.clone(),
         Dereference(ref e, offset) => format!("{}({})", offset, op_to_str(e)),
     }
 }
@@ -159,6 +160,7 @@ impl X86CodeGenerator {
                 let label = format!(".LC{}", self.current_label_num);
                 self.current_label_num += 1;
                 self.string_to_label.insert(v.clone(), label.clone());
+                instructions.push(Move(Variable(label.clone()), EAX));
                 EAX
             }
             Expression::BinaryOp(ref op, ref l, ref r) => {
@@ -204,7 +206,7 @@ impl X86CodeGenerator {
                 instructions.push(Comment("Evaluating print statement".to_string()));
                 let result_reg = self.evaluate_expression(&expr, instructions);
                 instructions.push(Push(result_reg));
-                instructions.push(Push(Variable("decimal_format_str")));
+                instructions.push(Push(VariableStatic("decimal_format_str")));
                 instructions.push(Instruction::Other("call printf".to_string()));
                 // pop args off the stack
                 instructions.push(Add(IntConstant(8), ESP));

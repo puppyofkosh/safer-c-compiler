@@ -17,5 +17,7 @@ python tester.py
 Else statements
 functions with multiple args
 for loops
+types
+figure out how to link with crt's _start function
 rust safety
 pointers

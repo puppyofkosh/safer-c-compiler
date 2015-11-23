@@ -7,7 +7,8 @@ pub enum Operand {
     ESP,
     Dereference(Box<Operand>, i32),
     IntConstant(i32),
-    Variable(&'static str),
+    Variable(String),
+    VariableStatic(&'static str),
 }
 
 pub enum Instruction {
