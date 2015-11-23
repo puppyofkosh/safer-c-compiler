@@ -185,14 +185,7 @@ impl X86CodeGenerator {
 
         instructions.push(Move(EBP, ESP));
         instructions.push(Pop(EBP));
-        if self.current_function == "_start" {
-            instructions.push(Move(EAX, EBX));
-            instructions.push(Move(IntConstant(1), EAX));
-            instructions.push(Instruction::OtherStatic("int $0x80"));
-        }
-        else {
-            instructions.push(Instruction::OtherStatic("ret"));
-        }
+        instructions.push(Instruction::OtherStatic("ret"));
     }
 
     fn evaluate_statement(&mut self,
@@ -210,12 +203,6 @@ impl X86CodeGenerator {
                 instructions.push(Instruction::Other("call printf".to_string()));
                 // pop args off the stack
                 instructions.push(Add(IntConstant(8), ESP));
-
-                // Call fflush(0)
-
-                instructions.push(Push(IntConstant(0)));
-                instructions.push(Instruction::Other("call fflush".to_string()));
-                instructions.push(Add(IntConstant(4), ESP));
             }
             Statement::If(ref expr, ref statements) => {
                 let reg = self.evaluate_expression(&expr, instructions);
@@ -359,11 +346,12 @@ impl X86CodeGenerator {
         assert!(self.identifier_to_offset.is_empty());
         assert!(self.blocks.is_empty());
 
-        let name = if &fun.name == "main" {
-            "_start".to_string()
-        } else {
-            fun.name.clone()
-        };
+        // let name = if &fun.name == "main" {
+        //     "_start".to_string()
+        // } else {
+        //     fun.name.clone()
+        // };
+        let name = fun.name.clone();
 
         self.current_function = name.clone();
         self.identifier_to_offset.insert(fun.arg.clone(), WORD_SIZE * 2);
@@ -376,7 +364,7 @@ impl X86CodeGenerator {
         instructions.push(Move(ESP, EBP));
 
         self.evaluate_block(&fun.statements, &mut instructions);
-        if name == "_start" {
+        if name == "main" {
             let ret_stmt = Statement::Return(Box::new(Expression::Value(0)));
             self.evaluate_statement(&ret_stmt, &mut instructions);
         }
@@ -395,7 +383,7 @@ impl GeneratesCode for X86CodeGenerator {
         let asm_header = ".section .data\n\
                           decimal_format_str: .asciz \"%d\\n\"\n\
                           .section .text\n\
-                          .globl _start\n";
+                          .globl main\n";
         let mut code = asm_header.to_string();
         for function in functions {
             code.push_str(&self.generate_code_for_function(function));
