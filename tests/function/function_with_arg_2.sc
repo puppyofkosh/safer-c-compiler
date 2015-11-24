@@ -5,7 +5,7 @@ fn fun(x) {
       return x;
    }
    
-   let y = 35;
+   let int y = 35;
    return (x + y) - 50;
 }
 

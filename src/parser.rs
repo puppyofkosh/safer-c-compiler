@@ -3,6 +3,7 @@ use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
 use ast::Function;
+use ast::VarType;
 use lexeme::Lexeme;
 use lexeme::OperatorType;
 use token_stream::TokenStream;
@@ -21,6 +22,14 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
         OperatorType::CompareLessOrEqual => BinaryOp::CompareLessOrEqual,
         OperatorType::CompareNotEqual => BinaryOp::CompareNotEqual,
         OperatorType::Assign => panic!("Illegal operator"),
+    }
+}
+
+fn type_lexeme_to_type(t: Lexeme) -> VarType {
+    match t {
+        Lexeme::IntType => VarType::Int,
+        Lexeme::CharType => VarType::Char,
+        _ => panic!("This lexeme isn't a type"),
     }
 }
 
@@ -180,13 +189,15 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Let);
     assert!(!tokens.is_empty());
     
+    let var_type = type_lexeme_to_type(tokens.consume());
+
     if let Lexeme::Identifier(name) = tokens.consume() {
         assert_eq!(tokens.consume(), Lexeme::Operator(OperatorType::Assign));
 
         let expr = parse_expression(tokens);
         assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
 
-        Statement::Let(name, Box::new(expr))
+        Statement::Let(name, var_type, Box::new(expr))
     }
     else {
         panic!("Expected an identifier");

@@ -1,7 +1,7 @@
 // 5
 fn test (arg)
 {
-        let v = 5;
+        let int v = 5;
         print v;
         return v;
 }

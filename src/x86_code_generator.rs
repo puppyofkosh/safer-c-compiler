@@ -1,12 +1,20 @@
+// TODO:
+// Make instructions field member
+// Move op_to_str stuff somewhere else
+// Make Register a separate operand type and dereference won't need a box
+
 use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
 use ast::Function;
+use ast::VarType;
 
 use assembly::Instruction;
 use assembly::Instruction::*;
 use assembly::Operand;
 use assembly::Operand::*;
+use assembly::is_register;
+use assembly::get_low_byte;
 
 use code_generator::GeneratesCode;
 
@@ -20,6 +28,13 @@ use std::collections::HashSet;
 
 static WORD_SIZE: i32 = 4;
 
+fn get_type_size(t: VarType) -> i32 {
+    match t {
+        VarType::Int => WORD_SIZE,
+        VarType::Char => 1,
+    }
+}
+
 fn op_to_str(o: &Operand) -> String {
     match *o {
         EAX => "%eax".to_string(),
@@ -27,6 +42,9 @@ fn op_to_str(o: &Operand) -> String {
         ECX => "%ecx".to_string(),
         EBP => "%ebp".to_string(),
         ESP => "%esp".to_string(),
+        AL => "%al".to_string(),
+        BL => "%bl".to_string(),
+        CL => "%cl".to_string(),
         IntConstant(i) => "$".to_string() + &i.to_string(),
         VariableStatic(n) => "$".to_string() + &n.to_string(),
         Variable(ref s) => "$".to_string() + &s.clone(),
@@ -48,6 +66,9 @@ fn instruction_to_asm(ins: &Instruction) -> String {
         Pop(ref a) => format!("popl {}", op_to_str(a)),
         Instruction::Other(ref st) => st.clone(),
         Instruction::OtherStatic(ref st) => st.to_string(),
+        Instruction::OtherTwoArg(ref st, ref a, ref b) => {
+            format!("{} {}, {}", st, op_to_str(a), op_to_str(b))
+        },
         Compare(ref a, ref b) => format!("cmp {}, {}", op_to_str(a),
                                          op_to_str(b)),
         JumpIfEqual(ref a) => format!("je {}", a),
@@ -68,6 +89,20 @@ fn instruction_list_to_asm(instructions: &Vec<Instruction>) -> String {
 }
 
 
+struct LocalVariable {
+    stack_offset: i32,
+    var_type: VarType,
+}
+
+impl LocalVariable {
+    pub fn new(off: i32, var_type: VarType) -> LocalVariable {
+        LocalVariable {
+            stack_offset: off,
+            var_type: var_type,
+        }
+    }
+}
+
 struct ActiveBlock {
     declared_variables: HashSet<String>,
 }
@@ -84,7 +119,7 @@ pub struct X86CodeGenerator {
     label_num: i32,
 
     // keep track of where in memory variables are stored
-    identifier_to_offset: HashMap<String, i32>,
+    identifier_to_var: HashMap<String, LocalVariable>,
     blocks: Vec<ActiveBlock>,
     current_stack_offset: i32,
     current_function: String,
@@ -98,7 +133,7 @@ impl X86CodeGenerator {
     pub fn new() -> X86CodeGenerator {
         X86CodeGenerator {
             label_num: 0,
-            identifier_to_offset: HashMap::new(),
+            identifier_to_var: HashMap::new(),
             blocks: Vec::new(),
             current_function: String::new(),
 
@@ -107,6 +142,40 @@ impl X86CodeGenerator {
             current_label_num: 0,
         }
     }
+    
+    fn move_var_to_register(&self,
+                            var: &LocalVariable, reg: Operand,
+                            instructions: &mut Vec<Instruction>) {
+        let from_op = Dereference(Box::new(EBP), var.stack_offset);
+        match var.var_type {
+            VarType::Int => {
+                instructions.push(Move(from_op, reg));
+            },
+            VarType::Char => {
+                instructions.push(OtherTwoArg("movzbl", from_op, reg));
+            }
+        }
+    }
+
+    fn move_value_to_var(&self,
+                         reg: Operand,
+                         var: &LocalVariable,                         
+                         instructions: &mut Vec<Instruction>) {
+        let to_operand = Dereference(Box::new(EBP), var.stack_offset);
+        match var.var_type {
+            VarType::Int => {
+                instructions.push(Move(reg, to_operand));
+            },
+            VarType::Char => {
+                let mut src = reg;
+                if is_register(&src) {
+                    src = get_low_byte(&src);
+                }
+                instructions.push(OtherTwoArg("movb", src, to_operand));
+            }
+        }
+    }
+                         
 
     fn evaluate_block(&mut self, statements: &Vec<Statement>,
                       instructions: &mut Vec<Instruction>) {
@@ -123,8 +192,10 @@ impl X86CodeGenerator {
                 assert!(block.declared_variables.len() < i32::max_value() as usize);
                 let previous_offset = self.current_stack_offset;
                 for variable in block.declared_variables {
-                    self.current_stack_offset += WORD_SIZE;
-                    self.identifier_to_offset.remove(&variable);
+                    let var = self.identifier_to_var
+                        .remove(&variable)
+                        .unwrap();
+                    self.current_stack_offset += get_type_size(var.var_type);
                 }
                 
                 // Give the stack space back
@@ -167,8 +238,12 @@ impl X86CodeGenerator {
                 self.evaluate_binary_op(op, l, r, instructions)
             }
             Expression::Variable(ref name) => {
-                match self.identifier_to_offset.get(name) {
-                    Some(offset) => Dereference(Box::new(EBP), *offset),
+                match self.identifier_to_var.get(name) {
+                    Some(var) => {
+                        self.move_var_to_register(&var, EAX,
+                                                  instructions);
+                        EAX
+                    }
                     None => panic!("Unkown variable {}", name),
                 }
             }
@@ -245,35 +320,38 @@ impl X86CodeGenerator {
                 instructions.push(Compare(IntConstant(0), reg));
                 instructions.push(JumpIfNotEqual(label1.to_string()));
             }
-            Statement::Let(ref name, ref expr) => {
+            Statement::Let(ref name, ref var_type, ref expr) => {
                 instructions.push(Comment(format!("variable declaration{}", name)));
 
-                if self.identifier_to_offset.contains_key(name) {
+                if self.identifier_to_var.contains_key(name) {
                     panic!("Variable {} already declared", *name);
                 }
-
-                // Evaluate the expression and put it on the stack
                 let reg = self.evaluate_expression(expr, instructions);
+
+                let var_size = get_type_size(*var_type);
+                //let var_size = WORD_SIZE;
+                self.current_stack_offset -= var_size;
                 
-                self.current_stack_offset -= WORD_SIZE;
-                self.identifier_to_offset.insert(name.clone(),
-                                                 self.current_stack_offset);
-                let mut current_block = self.blocks.last_mut().unwrap();
-                current_block.declared_variables.insert(name.clone());
+                self.identifier_to_var.insert(name.clone(),
+                                              LocalVariable::new(
+                                                  self.current_stack_offset,
+                                                  var_type.clone()));
+                {
+                    let mut current_block = self.blocks.last_mut().unwrap();
+                    current_block.declared_variables.insert(name.clone());
+                }
 
                 // TODO: Allocate all stack space in advance
-                instructions.push(Subtract(IntConstant(WORD_SIZE), ESP));
-                instructions.push(Move(reg, Dereference(Box::new(EBP),
-                                                        self.current_stack_offset)));
+                instructions.push(Subtract(IntConstant(var_size), ESP));
+                let local_var = self.identifier_to_var.get(name).unwrap();
+                self.move_value_to_var(reg,
+                                       local_var,
+                                       instructions);
             }
             Statement::Assign(ref name, ref expr) => {
-                let offset = *self.identifier_to_offset
-                    .get(name)
-                    .expect(&format!("Unkown identifier {}", name));
-
                 let reg = self.evaluate_expression(expr, instructions);
-                instructions.push(Move(reg, Dereference(Box::new(EBP),
-                                                        offset)));
+                let var = self.identifier_to_var.get(name).unwrap();
+                self.move_value_to_var(reg, &var, instructions);
             }
             Statement::Call(ref fn_call) => {
                 let reg = self.evaluate_expression(&fn_call.arg_expr, instructions);
@@ -356,7 +434,7 @@ impl X86CodeGenerator {
     }
 
     fn generate_code_for_function(&mut self, fun: &Function) -> String {
-        assert!(self.identifier_to_offset.is_empty());
+        assert!(self.identifier_to_var.is_empty());
         assert!(self.blocks.is_empty());
 
         let name = if &fun.name == "main" {
@@ -366,10 +444,10 @@ impl X86CodeGenerator {
         };
 
         self.current_function = name.clone();
-        self.identifier_to_offset.insert(fun.arg.clone(), WORD_SIZE * 2);
+        let var = LocalVariable::new(WORD_SIZE * 2, VarType::Int);
+        self.identifier_to_var.insert(fun.arg.clone(), var);
 
         let mut code = String::new();
-        // TODO: Insert argument to identifier_to_offset
         let mut instructions = Vec::new();
         instructions.push(Label(name.clone()));
         instructions.push(Push(EBP));
@@ -382,7 +460,7 @@ impl X86CodeGenerator {
         }
 
         // Remove arguments from active identifiers
-        self.identifier_to_offset.remove(&fun.arg);
+        self.identifier_to_var.remove(&fun.arg);
 
         code.push_str(&instruction_list_to_asm(&instructions));
         code

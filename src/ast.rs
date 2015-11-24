@@ -4,8 +4,13 @@ pub struct FunctionCall {
     pub arg_expr: Box<Expression>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum VarType {
+    Int,
+    Char,
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BinaryOp {
     Plus,
     Minus,
@@ -34,7 +39,7 @@ pub enum Statement {
     Print(Box<Expression>),
     If(Box<Expression>, Vec<Statement>),
     While(Box<Expression>, Vec<Statement>),
-    Let(String, Box<Expression>),
+    Let(String, VarType, Box<Expression>),
     Assign(String, Box<Expression>),
     //Call(String, Box<Expression>),
     Call(FunctionCall),
@@ -45,4 +50,3 @@ pub struct Function {
     pub statements: Vec<Statement>,
     pub arg: String,
 }
-

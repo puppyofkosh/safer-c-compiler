@@ -32,4 +32,6 @@ pub enum Lexeme {
     StartBlock, // {
     EndBlock,
     Comma,
+    IntType,
+    CharType,
 }

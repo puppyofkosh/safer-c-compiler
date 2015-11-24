@@ -21,6 +21,8 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "let" => Lexeme::Let,
         "call" => Lexeme::Call,
         "fn" => Lexeme::Function,
+        "int" => Lexeme::IntType,
+        "char" => Lexeme::CharType,
         "=" => Lexeme::Operator(OperatorType::Assign),
         "==" => Lexeme::Operator(OperatorType::CompareEqual),
         ">" => Lexeme::Operator(OperatorType::CompareGreater),
