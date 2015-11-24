@@ -40,6 +40,16 @@ fn get_precedence(op: &OperatorType) -> i32 {
     }
 }
 
+fn evaluate_bin_op(op: &OperatorType,
+                   current_stack: &mut Vec<Expression>)
+                   -> Expression {
+    let r = current_stack.pop().unwrap();
+    let l = current_stack.pop().unwrap();
+    Expression::BinaryOp(optype_to_op(&op),
+                         Box::new(l), Box::new(r))
+    
+}
+
 fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     let mut operator_stack = Vec::new();
     let mut output = Vec::new();
@@ -64,10 +74,8 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
             Lexeme::Operator(o1) => {
                 while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
                     if get_precedence(&o1) <= get_precedence(&o2) {
-                        let r = output.pop().unwrap();
-                        let l = output.pop().unwrap();
-                        output.push(Expression::BinaryOp(optype_to_op(&o2),
-                                                         Box::new(l), Box::new(r)));
+                        let bin_expr = evaluate_bin_op(&o2, &mut output);
+                        output.push(bin_expr);
                     }
                     else {
                         // push it back on the stack
@@ -92,10 +100,8 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
                 num_right_parens += 1;
                 while let Some(lex) = operator_stack.pop() {
                     if let Lexeme::Operator(op) = lex {
-                        let r = output.pop().unwrap();
-                        let l = output.pop().unwrap();
-                        output.push(Expression::BinaryOp(optype_to_op(&op),
-                                                         Box::new(l), Box::new(r)));
+                        let bin_expr = evaluate_bin_op(&op, &mut output);
+                        output.push(bin_expr);
                     }
                     else {
                         break;
@@ -112,17 +118,17 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
 
     while let Some(op) = operator_stack.pop() {
         if let Lexeme::Operator(o) = op {
-            let r = output.pop().unwrap();
-            let l = output.pop().unwrap();
-            output.push(Expression::BinaryOp(optype_to_op(&o),
-                                             Box::new(l), Box::new(r))); 
+            let bin_expr = evaluate_bin_op(&o, &mut output);
+            output.push(bin_expr);
         }
         else {
             panic!("Mismatched parens");
         }
     }
     
-    output.pop().unwrap()
+    let res = output.pop().unwrap();
+    assert!(output.is_empty(), "Tokens remaining on the stack! Invalid input");
+    res
 }
 
 fn parse_expression(tokens: &mut TokenStream) -> Expression {

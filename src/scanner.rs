@@ -39,13 +39,9 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         ";" => Lexeme::EndOfStatement,
         "," => Lexeme::Comma,
         _ => {
-            if let Some(x) = token.chars().next() {
-                if let Some(y) = token.chars().last() {
-                    if x == '"' && y == '"' {
-                        // Keep the double quotes for now
-                        return Lexeme::StringConstant(token.to_string());
-                    }
-                }
+            if token.starts_with("\"") && token.ends_with("\"") {
+                // Keep the double quotes for now
+                return Lexeme::StringConstant(token.to_string());
             }
 
             if token.chars().all(|ch| ch.is_alphanumeric()) {
@@ -59,76 +55,78 @@ fn token_to_lexeme(token: &str) -> Lexeme {
     }
 }
 
+fn pop_until(l: &mut LinkedList<char>, c: char) {
+    while !l.is_empty() {        
+        {
+            let first = l.front().unwrap();
+            if *first == c {
+                break;
+            }   
+        }
+
+        l.pop_front();
+    }
+}
+
+fn get_string_constant(chars: &mut LinkedList<char>) -> String {
+    assert_eq!(chars.front(), Some(&'"'));
+    let mut s = String::new();
+    s.push(chars.pop_front().unwrap());
+    while let Some(c) = chars.pop_front() {
+        s.push(c);
+
+        if c == '"' {
+            break;
+        }
+    }
+    s
+}
+
 fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
-    let chars: Vec<char> = source.chars().collect();
+    let mut chars: LinkedList<char> = source.chars().collect();
     let mut tokens = LinkedList::new();
     if source.len() == 0 {
         return tokens;
     }
 
-    let mut s = String::new();
-    let mut index = 0;
-    let mut all_chars_alphanumeric = chars[0].is_alphanumeric();
-    while index < chars.len() {
-        let ch = chars[index];
-        let next_ch = if index + 1 < chars.len() {
-            Some(chars[index + 1])
-        } else {
-            None
-        };
-
-        if ch == '/' && next_ch == Some('/'){
-            let next_ind = chars.iter().position(|x| *x == '\n');
-            if let Some(p) = next_ind {
-                index = p + 1;
-                continue;
-            }
-            else {
-                break;
-            }
-        }        
+    while let Some(c) = chars.pop_front() {
+        if c.is_whitespace() {
+            continue;
+        }
+        let next_char = chars.front().cloned();
         
-        if ch == '"' {
-            s.push(ch);
-            index += 1;
-            if index == chars.len() {
-                panic!("exceeds the length of token stream!");
-            } else {
-                let mut ch2 = chars[index];
-                while ch2 != '"' && index < chars.len() {
-                    s.push(ch2);
-                    index += 1;
-                    ch2 = chars[index];
-                }
-                if ch2 == '"' {
-                    s.push(ch2);
-                } else {
-                    panic!("no right quote mark!");
-                }
-                index += 1;
-            }
+        // Comment
+        if c == '/' && next_char == Some('/') {
+            pop_until(&mut chars, '\n');
             continue;
         }
 
-        let is_ws = ch.is_whitespace();
-        let alphanum_changed = ch.is_alphanumeric() != all_chars_alphanumeric;
-        if s.len() > 0 && (is_ws || alphanum_changed) {
-            tokens.push_back(token_to_lexeme(&s));
-            s = String::new();
-        }
+        let mut s = String::new();
+        s.push(c);
 
-        if alphanum_changed && !is_ws {
-            all_chars_alphanumeric = ch.is_alphanumeric();
-        }
+        match c {
+            '>' | '<' | '=' | '!' => {
+                if next_char == Some('=') {
+                    s.push(chars.pop_front().unwrap());
+                }
+            }
+            '"' => {
+                chars.push_front(c);
+                s = get_string_constant(&mut chars);
+            }
+            'a'...'z' | 'A' ... 'Z' | '0'...'9' => {
+                while let Some(next_ch) = chars.front().cloned() {
+                    if !next_ch.is_alphanumeric() {
+                        break;
+                    }
+                    s.push(chars.pop_front().unwrap());
+                }
+            }
+            _ => {
+                
+            }
+        };
 
-        if !is_ws {
-            s.push(ch);
-        }
-
-        index += 1;
-    }
-
-    if s.len() > 0 {
         tokens.push_back(token_to_lexeme(&s));
     }
 
