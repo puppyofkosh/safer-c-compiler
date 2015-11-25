@@ -1,33 +1,25 @@
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum RegisterVal {
+    EAX, EBX, ECX,
+    AL, BL, CL,
+    ESP, EBP
+}
+
+
+#[derive(PartialEq, Debug, Clone)]
 pub enum Operand {
-    EAX,
-    EBX,
-    ECX,
-    AL,
-    BL,
-    CL,
-    EBP,
-    ESP,
-    Dereference(Box<Operand>, i32),
+    Register(RegisterVal),
+    Dereference(RegisterVal, i32),
     IntConstant(i32),
     Variable(String),
     VariableStatic(&'static str),
 }
 
-pub fn is_register(o: &Operand) -> bool {
+pub fn get_low_byte(o: &RegisterVal) -> RegisterVal {
     match *o {
-        Operand::EAX | Operand::EBX | Operand::ECX => true,
-        Operand::AL | Operand::BL | Operand::CL => true,
-        Operand::EBP | Operand::ESP => true,
-        _ => false
-    }
-}
-
-pub fn get_low_byte(o: &Operand) -> Operand {
-    match *o {
-        Operand::EAX => Operand::AL,
-        Operand::EBX => Operand::BL,
-        Operand::ECX => Operand::CL,
+        RegisterVal::EAX => RegisterVal::AL,
+        RegisterVal::EBX => RegisterVal::BL,
+        RegisterVal::ECX => RegisterVal::CL,
         _ => panic!("Register doesn't have low byte"),
     }
 }
@@ -50,4 +42,5 @@ pub enum Instruction {
     OtherStatic(&'static str),
     OtherTwoArg(&'static str, Operand, Operand),
     Comment(String),
+    NOP, // No-op. Do nothing
 }

@@ -1,5 +1,4 @@
 // TODO:
-// Move op_to_str stuff somewhere else
 // Make Register a separate operand type and dereference won't need a box
 
 use ast::Statement;
@@ -12,7 +11,7 @@ use assembly::Instruction;
 use assembly::Instruction::*;
 use assembly::Operand;
 use assembly::Operand::*;
-use assembly::is_register;
+use assembly::RegisterVal::*;
 use assembly::get_low_byte;
 
 use assembly_printer::instruction_list_to_asm;
@@ -22,15 +21,10 @@ use code_generator::GeneratesCode;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-static WORD_SIZE: i32 = 4;
-
-fn get_type_size(t: VarType) -> i32 {
-    match t {
-        VarType::Int => WORD_SIZE,
-        VarType::Char => 1,
-    }
-}
-
+use assembly_helper::get_type_size;
+use assembly_helper::alloc_stack;
+use assembly_helper::free_stack;
+use assembly_helper::WORD_SIZE;
 
 
 #[derive(Clone, Copy)]
@@ -76,6 +70,7 @@ pub struct X86CodeGenerator {
     instructions: Vec<Instruction>,
 }
 
+
 impl X86CodeGenerator {
     pub fn new() -> X86CodeGenerator {
         X86CodeGenerator {
@@ -91,10 +86,11 @@ impl X86CodeGenerator {
             instructions: Vec::new(),
         }
     }
+
     
     fn move_var_to_register(&mut self,
                             var: &LocalVariable, reg: Operand) {
-        let from_op = Dereference(Box::new(EBP), var.stack_offset);
+        let from_op = Dereference(EBP, var.stack_offset);
         match var.var_type {
             VarType::Int => {
                 self.instructions.push(Move(from_op, reg));
@@ -107,15 +103,15 @@ impl X86CodeGenerator {
 
     fn move_value_to_var(&mut self, reg: Operand,
                          var: &LocalVariable) {
-        let to_operand = Dereference(Box::new(EBP), var.stack_offset);
+        let to_operand = Dereference(EBP, var.stack_offset);
         match var.var_type {
             VarType::Int => {
                 self.instructions.push(Move(reg, to_operand));
             },
             VarType::Char => {
                 let mut src = reg;
-                if is_register(&src) {
-                    src = get_low_byte(&src);
+                if let Register(r) = src {
+                    src = Register(get_low_byte(&r));
                 }
                 self.instructions.push(OtherTwoArg("movb", src, to_operand));
             }
@@ -144,12 +140,8 @@ impl X86CodeGenerator {
                     self.current_stack_offset += get_type_size(var.var_type);
                 }
                 
-                // Give the stack space back
-                let space_freed = previous_offset - self.current_stack_offset;
-                if space_freed > 0 {
-                    self.instructions.push(Add(IntConstant(space_freed),
-                                               ESP));
-                }
+                self.instructions.push(free_stack(self.current_stack_offset -
+                                                  previous_offset));
             }
         }
     }
@@ -161,24 +153,26 @@ impl X86CodeGenerator {
         match *expr {
             Expression::Call(ref fn_call) => {
                 let reg = self.evaluate_expression(&fn_call.arg_expr);
+
                 self.instructions.push(Push(reg));
-                
                 self.instructions.push(Call(fn_call.name.clone()));
-                self.instructions.push(Add(IntConstant(WORD_SIZE), ESP));
-                EAX
+                self.instructions.push(free_stack(WORD_SIZE));
+
+                Register(EAX)
             }
             Expression::Value(ref v) => {
                 // FIXME: We should probably use more than just the register
                 // EAX...
-                self.instructions.push(Move(IntConstant(*v), EAX));
-                EAX
+                self.instructions.push(Move(IntConstant(*v), Register(EAX)));
+                Register(EAX)
             }
             Expression::StringValue(ref v) => {
                 let label = format!(".LC{}", self.current_label_num);
                 self.current_label_num += 1;
                 self.string_to_label.insert(v.clone(), label.clone());
-                self.instructions.push(Move(Variable(label.clone()), EAX));
-                EAX
+                self.instructions.push(Move(Variable(label.clone()),
+                                            Register(EAX)));
+                Register(EAX)
             }
             Expression::BinaryOp(ref op, ref l, ref r) => {
                 self.evaluate_binary_op(op, l, r)
@@ -187,8 +181,8 @@ impl X86CodeGenerator {
                 let var = *self.identifier_to_var
                     .get(name)
                     .expect(&format!("Unkown variable {}", name));
-                self.move_var_to_register(&var, EAX);
-                EAX
+                self.move_var_to_register(&var, Register(EAX));
+                Register(EAX)
             }
         }
     }
@@ -197,15 +191,15 @@ impl X86CodeGenerator {
         let out_reg = self.evaluate_expression(&value);
         let instr = &mut self.instructions;
         // For now everything goes into eax
-        if out_reg != EAX {
-            instr.push(Move(out_reg, EAX));
+        if out_reg != Register(EAX) {
+            instr.push(Move(out_reg, Register(EAX)));
         }
 
-        instr.push(Move(EBP, ESP));
-        instr.push(Pop(EBP));
+        instr.push(Move(Register(EBP), Register(ESP)));
+        instr.push(Pop(Register(EBP)));
         if self.current_function == "_start" {
-            instr.push(Move(EAX, EBX));
-            instr.push(Move(IntConstant(1), EAX));
+            instr.push(Move(Register(EAX), Register(EBX)));
+            instr.push(Move(IntConstant(1), Register(EAX)));
             instr.push(Instruction::OtherStatic("int $0x80"));
         }
         else {
@@ -229,13 +223,12 @@ impl X86CodeGenerator {
                 instr.push(Push(VariableStatic("decimal_format_str")));
                 instr.push(Instruction::Other("call printf".to_string()));
                 // pop args off the stack
-                instr.push(Add(IntConstant(8), ESP));
+                instr.push(free_stack(WORD_SIZE*2));
 
                 // Call fflush(0)
-
                 instr.push(Push(IntConstant(0)));
                 instr.push(Instruction::Other("call fflush".to_string()));
-                instr.push(Add(IntConstant(4), ESP));
+                instr.push(free_stack(WORD_SIZE));
             }
             Statement::If(ref expr, ref statements) => {
                 let reg = self.evaluate_expression(&expr);
@@ -288,7 +281,7 @@ impl X86CodeGenerator {
                 }
 
                 // TODO: Allocate all stack space in advance
-                self.instructions.push(Subtract(IntConstant(var_size), ESP));
+                self.instructions.push(alloc_stack(var_size));
                 let local_var = *self.identifier_to_var.get(name).unwrap();
                 self.move_value_to_var(reg, &local_var);
             }
@@ -302,7 +295,7 @@ impl X86CodeGenerator {
                 self.instructions.push(Push(reg));
                 
                 self.instructions.push(Call(fn_call.name.clone()));
-                self.instructions.push(Add(IntConstant(WORD_SIZE), ESP));
+                self.instructions.push(free_stack(WORD_SIZE));
             }
         }
     }
@@ -320,63 +313,65 @@ impl X86CodeGenerator {
         
         let right_register = self.evaluate_expression(&r);
 
-        // For now we use EAX for everything
-        if right_register != EAX {
-            self.instructions.push(Move(right_register, EAX));
+        // For now we use Register(EAX) for everything
+        if right_register != Register(EAX) {
+            self.instructions.push(Move(right_register, Register(EAX)));
         }
  
-        // put the value of the left expression into EBX
-        self.instructions.push(Pop(EBX));
+        // put the value of the left expression into Register(EBX)
+        self.instructions.push(Pop(Register(EBX)));
 
         let instr = &mut self.instructions;
+
         match *op {
-            BinaryOp::Plus => instr.push(Add(EBX, EAX)),
-            BinaryOp::Multiply => instr.push(Multiply(EBX, EAX)),
+            BinaryOp::Plus => instr.push(Add(Register(EBX), Register(EAX))),
+            BinaryOp::Multiply => instr.push(Multiply(Register(EBX),
+                                                      Register(EAX))),
             BinaryOp::Minus => {
-                instr.push(Subtract(EAX, EBX));
-                instr.push(Move(EBX, EAX));
+                instr.push(Subtract(Register(EAX), Register(EBX)));
+                instr.push(Move(Register(EBX), Register(EAX)));
             }
             BinaryOp::Divide => {
-                instr.push(Move(EAX, ECX));
-                instr.push(Move(EBX, EAX));
+                instr.push(Move(Register(EAX), Register(ECX)));
+                instr.push(Move(Register(EBX), Register(EAX)));
                 instr.push(Other("cltd".to_string()));
-                instr.push(Divide(ECX));
+                instr.push(Divide(Register(ECX)));
             }
             BinaryOp::CompareEqual => {
-                instr.push(Compare(EAX, EBX));
+                instr.push(Compare(Register(EAX), Register(EBX)));
                 // FIXME: weird
                 instr.push(Other("sete %al".to_string()));
                 instr.push(Other("movzbl %al, %eax".to_string()));
             }
             BinaryOp::CompareGreater => {
-                instr.push(Compare(EAX, EBX));
+                instr.push(Compare(Register(EAX), Register(EBX)));
                 instr.push(Other("setg %al".to_string()));
                 instr.push(Other("movzbl %al, %eax".to_string()));
             }
             BinaryOp::CompareLess => {
-                instr.push(Compare(EAX, EBX));
+                instr.push(Compare(Register(EAX), Register(EBX)));
                 instr.push(Other("setl %al".to_string()));
                 instr.push(Other("movzbl %al, %eax".to_string()));
             }
             BinaryOp::CompareGreaterOrEqual => {
-                instr.push(Compare(EAX, EBX));
+                instr.push(Compare(Register(EAX), Register(EBX)));
                 instr.push(Other("setge %al".to_string()));
                 instr.push(Other("movzbl %al, %eax".to_string()));
             }
             BinaryOp::CompareLessOrEqual => {
-                instr.push(Compare(EAX, EBX));
+                instr.push(Compare(Register(EAX), Register(EBX)));
                 instr.push(Other("setle %al".to_string()));
                 instr.push(Other("movzbl %al, %eax".to_string()));
                 
             }
             BinaryOp::CompareNotEqual => {
-                instr.push(Compare(EAX, EBX));
+                instr.push(Compare(Register(EAX), Register(EBX)));
                 instr.push(Other("setne %al".to_string()));
                 instr.push(Other("movzbl %al, %eax".to_string()));
             }
 
         }
-        EAX
+        Register(EAX)
     }
 
     fn generate_code_for_function(&mut self, fun: &Function) -> String {
@@ -398,8 +393,8 @@ impl X86CodeGenerator {
         {
             let instr = &mut self.instructions;
             instr.push(Label(name.clone()));
-            instr.push(Push(EBP));
-            instr.push(Move(ESP, EBP));
+            instr.push(Push(Register(EBP)));
+            instr.push(Move(Register(ESP), Register(EBP)));
         }
         self.evaluate_block(&fun.statements);
         if name == "_start" {

@@ -7,6 +7,7 @@ mod lexeme;
 mod token_stream;
 mod assembly;
 mod assembly_printer;
+mod assembly_helper;
 
 use std::io::prelude::*;
 use std::fs::File;
