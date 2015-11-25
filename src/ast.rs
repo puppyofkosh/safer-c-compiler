@@ -31,6 +31,8 @@ pub enum Expression {
     StringValue(String),
     BinaryOp(BinaryOp, Box<Expression>, Box<Expression>),
     Call(FunctionCall),
+    Reference(String),
+    Dereference(String),
 }
 
 #[derive(Debug)]
@@ -41,7 +43,7 @@ pub enum Statement {
     While(Box<Expression>, Vec<Statement>),
     Let(String, VarType, Box<Expression>),
     Assign(String, Box<Expression>),
-    //Call(String, Box<Expression>),
+    AssignToDereference(String, Box<Expression>),
     Call(FunctionCall),
 }
 

@@ -5,6 +5,9 @@ use ast::BinaryOp;
 use ast::Function;
 use ast::VarType;
 use lexeme::Lexeme;
+
+use lexeme::Lexeme::Identifier;
+
 use lexeme::OperatorType;
 use token_stream::TokenStream;
 
@@ -21,7 +24,6 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
         OperatorType::CompareGreaterOrEqual => BinaryOp::CompareGreaterOrEqual,
         OperatorType::CompareLessOrEqual => BinaryOp::CompareLessOrEqual,
         OperatorType::CompareNotEqual => BinaryOp::CompareNotEqual,
-        OperatorType::Assign => panic!("Illegal operator"),
     }
 }
 
@@ -45,7 +47,6 @@ fn get_precedence(op: &OperatorType) -> i32 {
         OperatorType::CompareNotEqual => 1,
         OperatorType::Star => 2,
         OperatorType::Divide => 2,
-        OperatorType::Assign => panic!("Illegal op")
     }
 }
 
@@ -59,6 +60,21 @@ fn evaluate_bin_op(op: &OperatorType,
     
 }
 
+// Return true if when the operator * follows this token,
+// it should be treated as a dereference, false if it should not
+fn deref_follows(tok: &Option<Lexeme>) -> bool {
+    match tok.as_ref() {
+        None => true,
+        Some(lex) => {
+            match *lex {
+                Lexeme::Operator(_) => true,
+                Lexeme::LParen => true,
+                _ => false
+            }
+        }
+    }
+}
+
 fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     let mut operator_stack = Vec::new();
     let mut output = Vec::new();
@@ -69,16 +85,37 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     let mut num_left_parens = 0;
     let mut num_right_parens = 0;
 
+    let mut prev_tok = None;
     while !tokens.is_empty() {
         let tok = tokens.consume();
+        let tok_copy = tok.clone();
         
         match tok {
-            Lexeme::Identifier(name) => output.push(Expression::Variable(name.clone())),
+            Identifier(name) => output.push(Expression::Variable(name)),
             Lexeme::IntConstant(v) => output.push(Expression::Value(v)),
-            Lexeme::StringConstant(s) => output.push(Expression::StringValue(s.clone())),
+            Lexeme::StringConstant(s) => {
+                output.push(Expression::StringValue(s));
+            },
             Lexeme::Call => {
                 tokens.push(tok);
                 output.push(Expression::Call(parse_call(tokens)));
+            }
+            Lexeme::Reference => {
+                // next token should be an identifier
+                let identifier = tokens.consume();
+                if let Identifier(name) = identifier {
+                    output.push(Expression::Reference(name));
+                } else {
+                    panic!("Expected token after & to be identifier");
+                }
+            }
+            Lexeme::Operator(OperatorType::Star) if deref_follows(&prev_tok) => {
+                let identifier = tokens.consume();
+                if let Identifier(name) = identifier {
+                    output.push(Expression::Dereference(name));
+                } else {
+                    panic!("Expected token after * to be identifier");
+                }
             }
             Lexeme::Operator(o1) => {
                 while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
@@ -123,6 +160,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
                 break;
             },
         }
+        prev_tok = Some(tok_copy);
     }
 
     while let Some(op) = operator_stack.pop() {
@@ -191,8 +229,8 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     
     let var_type = type_lexeme_to_type(tokens.consume());
 
-    if let Lexeme::Identifier(name) = tokens.consume() {
-        assert_eq!(tokens.consume(), Lexeme::Operator(OperatorType::Assign));
+    if let Identifier(name) = tokens.consume() {
+        assert_eq!(tokens.consume(), Lexeme::Assign);
 
         let expr = parse_expression(tokens);
         assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
@@ -205,14 +243,23 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
 }
 
 fn parse_assignment(tokens: &mut TokenStream) -> Statement{
+    let is_deref = tokens.peek() == Lexeme::Operator(OperatorType::Star);
+    if is_deref {
+        tokens.consume();
+    }
     let tok = tokens.consume();
-    if let Lexeme::Identifier(name) = tok {
-        assert_eq!(tokens.consume(), Lexeme::Operator(OperatorType::Assign));
 
-        let expr = parse_expression(tokens);
+    if let Identifier(name) = tok {
+        assert_eq!(tokens.consume(), Lexeme::Assign);
+
+        let expr = Box::new(parse_expression(tokens));
         assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
         
-        Statement::Assign(name, Box::new(expr))
+        if !is_deref {
+            Statement::Assign(name, expr)
+        } else {
+            Statement::AssignToDereference(name, expr)
+        }
     }
     else {
         panic!("Expected an identifier");
@@ -225,7 +272,7 @@ fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
     assert!(!tokens.is_empty());
 
     let tok = tokens.consume();
-    if let Lexeme::Identifier(fn_name) = tok {
+    if let Identifier(fn_name) = tok {
         assert_eq!(tokens.consume(), Lexeme::Comma);
         let arg_expr = parse_expression(tokens);
         assert_eq!(tokens.consume(), Lexeme::RParen);
@@ -241,10 +288,10 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
     assert_eq!(tokens.consume(), Lexeme::Function);
     assert!(!tokens.is_empty());
 
-    if let Lexeme::Identifier(fn_name) = tokens.consume() {
+    if let Identifier(fn_name) = tokens.consume() {
         assert_eq!(tokens.consume(), Lexeme::LParen);
         
-        if let Lexeme::Identifier(fn_arg) = tokens.consume() {
+        if let Identifier(fn_arg) = tokens.consume() {
             assert_eq!(tokens.consume(), Lexeme::RParen);
             
             let statements = parse_block(tokens);
@@ -270,7 +317,8 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
             assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
             Statement::Call(fn_call)
         },
-        Lexeme::Identifier(_s) => parse_assignment(tokens),
+        Identifier(_s) => parse_assignment(tokens),
+        Lexeme::Operator(OperatorType::Star) => parse_assignment(tokens),
         _ => panic!("Unexpected lexeme {:?}", token),
     }
 }

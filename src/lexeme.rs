@@ -10,7 +10,6 @@ pub enum OperatorType {
     CompareGreaterOrEqual,
     CompareLessOrEqual,
     CompareNotEqual,
-    Assign,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -21,6 +20,8 @@ pub enum Lexeme {
     While,
     IntConstant(i32),
     Operator(OperatorType),
+    Reference,
+    Assign,
     Let,
     Identifier(String),
     StringConstant(String),

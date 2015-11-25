@@ -89,7 +89,11 @@ impl X86CodeGenerator {
 
     
     fn move_var_to_register(&mut self,
-                            var: &LocalVariable, reg: Operand) {
+                            varname: &str, reg: Operand) {
+        let var = self.identifier_to_var
+            .get(varname)
+            .expect(&format!("Unkown variable {}", varname));
+
         let from_op = Dereference(EBP, var.stack_offset);
         match var.var_type {
             VarType::Int => {
@@ -102,7 +106,11 @@ impl X86CodeGenerator {
     }
 
     fn move_value_to_var(&mut self, reg: Operand,
-                         var: &LocalVariable) {
+                         varname: &str) {
+        let var = self.identifier_to_var
+            .get(varname)
+            .expect(&format!("Unkown variable {}", varname));
+
         let to_operand = Dereference(EBP, var.stack_offset);
         match var.var_type {
             VarType::Int => {
@@ -178,10 +186,23 @@ impl X86CodeGenerator {
                 self.evaluate_binary_op(op, l, r)
             }
             Expression::Variable(ref name) => {
-                let var = *self.identifier_to_var
+                self.move_var_to_register(name, Register(EAX));
+                Register(EAX)
+            }
+            Expression::Reference(ref name) => {
+                let off = self.identifier_to_var
                     .get(name)
-                    .expect(&format!("Unkown variable {}", name));
-                self.move_var_to_register(&var, Register(EAX));
+                    .expect(&format!("Unkown variable {}", name))
+                    .stack_offset;
+                self.instructions.push(OtherTwoArg("leal",
+                                                   Dereference(EBP, off),
+                                                   Register(EAX)));
+                Register(EAX)
+            }
+            Expression::Dereference(ref name) => {
+                self.move_var_to_register(name, Register(EAX));
+                self.instructions.push(Move(Dereference(EAX, 0),
+                                            Register(EAX)));
                 Register(EAX)
             }
         }
@@ -282,13 +303,24 @@ impl X86CodeGenerator {
 
                 // TODO: Allocate all stack space in advance
                 self.instructions.push(alloc_stack(var_size));
-                let local_var = *self.identifier_to_var.get(name).unwrap();
-                self.move_value_to_var(reg, &local_var);
+                self.move_value_to_var(reg, name);
             }
             Statement::Assign(ref name, ref expr) => {
                 let reg = self.evaluate_expression(expr);
-                let var = *self.identifier_to_var.get(name).unwrap();
-                self.move_value_to_var(reg, &var);
+                self.move_value_to_var(reg, name);
+            }
+            Statement::AssignToDereference(ref name, ref expr) => {
+                let expr_reg = self.evaluate_expression(expr);
+                
+                let addr_register = if expr_reg == Register(EBX) {
+                    EAX
+                } else {
+                    EBX
+                };
+                
+                self.move_var_to_register(name, Register(addr_register));
+                self.instructions.push(Move(expr_reg,
+                                            Dereference(addr_register, 0)));
             }
             Statement::Call(ref fn_call) => {
                 let reg = self.evaluate_expression(&fn_call.arg_expr);
