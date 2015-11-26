@@ -1,5 +1,5 @@
 // 13
-fn main (arg)
+fn int main (int arg)
 {
         let int x = 11 ;
         let int y = 12 ;

@@ -1,15 +1,15 @@
 // 5;
-fn f1(arg) {
+fn int f1(int arg) {
    call(f2, arg + 1);
    return 0;
 }
 
-fn f2(arg) {
+fn int f2(int arg) {
    print arg;
    return 0;
 }
 
-fn main(arg) {
+fn int main(int arg) {
    call(f1, 4);
    return 0;
 }

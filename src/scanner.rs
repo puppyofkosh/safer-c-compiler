@@ -2,6 +2,7 @@ use std::collections::LinkedList;
 
 use lexeme::Lexeme;
 use lexeme::OperatorType;
+use lexeme::VarType;
 use token_stream::TokenStream;
 
 fn token_to_lexeme(token: &str) -> Lexeme {
@@ -21,8 +22,9 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "let" => Lexeme::Let,
         "call" => Lexeme::Call,
         "fn" => Lexeme::Function,
-        "int" => Lexeme::IntType,
-        "char" => Lexeme::CharType,
+        "int" => Lexeme::Type(VarType::Int),
+        "char" => Lexeme::Type(VarType::Char),
+        "pointer" => Lexeme::Type(VarType::Pointer),
         "&" => Lexeme::Reference,
         "=" => Lexeme::Assign,
         "==" => Lexeme::Operator(OperatorType::CompareEqual),

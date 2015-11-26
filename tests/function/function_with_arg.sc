@@ -1,11 +1,11 @@
 // 23
-fn func(arg) {
+fn int func(int arg) {
    let int x = arg + 1;
    print x;
    return x;
 }
 
-fn main(arg) {
+fn int main(int arg) {
    call(func, 22);
    return 0;
 }

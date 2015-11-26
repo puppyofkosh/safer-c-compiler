@@ -1,7 +1,7 @@
 // 2
-fn main(arg) {
+fn int main(int arg) {
    let int x = 10;
-   let int y = &x;
+   let pointer(int) y = &x;
 
    *y = 2;
 

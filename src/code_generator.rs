@@ -1,5 +1,5 @@
-use ast::Function;
+use ast::Program;
 
 pub trait GeneratesCode {
-    fn generate_code(&mut self, &Vec<Function>) -> String;
+    fn generate_code(&mut self, &Program) -> String;
 }

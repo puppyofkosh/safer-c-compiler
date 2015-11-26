@@ -6,28 +6,30 @@ use ast::Expression;
 use ast::BinaryOp;
 use ast::Function;
 use ast::VarType;
+use ast::Program;
 
 use assembly::Instruction;
 use assembly::Instruction::*;
 use assembly::Operand;
 use assembly::Operand::*;
 use assembly::RegisterVal::*;
-use assembly::get_low_byte;
 
 use assembly_printer::instruction_list_to_asm;
 
 use code_generator::GeneratesCode;
 
-use std::collections::HashMap;
-use std::collections::HashSet;
+use code_block::CodeBlock;
 
+use std::collections::HashMap;
+
+use assembly_helper;
 use assembly_helper::get_type_size;
 use assembly_helper::alloc_stack;
 use assembly_helper::free_stack;
 use assembly_helper::WORD_SIZE;
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct LocalVariable {
     stack_offset: i32,
     var_type: VarType,
@@ -42,24 +44,12 @@ impl LocalVariable {
     }
 }
 
-struct ActiveBlock {
-    declared_variables: HashSet<String>,
-}
-
-impl ActiveBlock {
-    pub fn new() -> ActiveBlock {
-        ActiveBlock {
-            declared_variables: HashSet::new(),
-        }
-    }
-}
-
 pub struct X86CodeGenerator {
     label_num: i32,
 
     // keep track of where in memory variables are stored
     identifier_to_var: HashMap<String, LocalVariable>,
-    blocks: Vec<ActiveBlock>,
+    blocks: Vec<CodeBlock>,
     current_stack_offset: i32,
     current_function: String,
 
@@ -87,7 +77,6 @@ impl X86CodeGenerator {
         }
     }
 
-    
     fn move_var_to_register(&mut self,
                             varname: &str, reg: Operand) {
         let var = self.identifier_to_var
@@ -95,14 +84,8 @@ impl X86CodeGenerator {
             .expect(&format!("Unkown variable {}", varname));
 
         let from_op = Dereference(EBP, var.stack_offset);
-        match var.var_type {
-            VarType::Int => {
-                self.instructions.push(Move(from_op, reg));
-            },
-            VarType::Char => {
-                self.instructions.push(OtherTwoArg("movzbl", from_op, reg));
-            }
-        }
+        let instr = assembly_helper::move_type(from_op, reg, &var.var_type);
+        self.instructions.push(instr);
     }
 
     fn move_value_to_var(&mut self, reg: Operand,
@@ -112,23 +95,13 @@ impl X86CodeGenerator {
             .expect(&format!("Unkown variable {}", varname));
 
         let to_operand = Dereference(EBP, var.stack_offset);
-        match var.var_type {
-            VarType::Int => {
-                self.instructions.push(Move(reg, to_operand));
-            },
-            VarType::Char => {
-                let mut src = reg;
-                if let Register(r) = src {
-                    src = Register(get_low_byte(&r));
-                }
-                self.instructions.push(OtherTwoArg("movb", src, to_operand));
-            }
-        }
+        let instr = assembly_helper::move_type(reg, to_operand, &var.var_type);
+        self.instructions.push(instr);
     }
                          
 
     fn evaluate_block(&mut self, statements: &Vec<Statement>) {
-        self.blocks.push(ActiveBlock::new());
+        self.blocks.push(CodeBlock::new());
         for stmt in statements {
             self.evaluate_statement(stmt);
         }
@@ -145,7 +118,7 @@ impl X86CodeGenerator {
                     let var = self.identifier_to_var
                         .remove(&variable)
                         .unwrap();
-                    self.current_stack_offset += get_type_size(var.var_type);
+                    self.current_stack_offset += get_type_size(&var.var_type);
                 }
                 
                 self.instructions.push(free_stack(self.current_stack_offset -
@@ -200,9 +173,27 @@ impl X86CodeGenerator {
                 Register(EAX)
             }
             Expression::Dereference(ref name) => {
+                // Move the address of the thing we're gonna copy to eax
                 self.move_var_to_register(name, Register(EAX));
-                self.instructions.push(Move(Dereference(EAX, 0),
-                                            Register(EAX)));
+
+                // Figure out the type of the thing we're copying (matters
+                // cause we need to know how much to copy)
+                let p_typ = &self.identifier_to_var
+                    .get(name)
+                    .unwrap()
+                    .var_type;
+
+                let instr = if let VarType::Pointer(ref t) = *p_typ {
+                    assembly_helper::move_type(Dereference(EAX, 0),
+                                               Register(EAX),
+                                               t)
+                } else {
+                    panic!("Cannot dereference non pointer")
+                };
+
+                // The address of the thing we want to dereference is in EAX
+
+                self.instructions.push(instr);
                 Register(EAX)
             }
         }
@@ -289,7 +280,7 @@ impl X86CodeGenerator {
                 }
                 let reg = self.evaluate_expression(expr);
 
-                let var_size = get_type_size(*var_type);
+                let var_size = get_type_size(var_type);
                 self.current_stack_offset -= var_size;
                 
                 self.identifier_to_var.insert(name.clone(),
@@ -318,9 +309,25 @@ impl X86CodeGenerator {
                     EBX
                 };
                 
+                // move the destination address into a register
                 self.move_var_to_register(name, Register(addr_register));
-                self.instructions.push(Move(expr_reg,
-                                            Dereference(addr_register, 0)));
+
+                // Figure out the type of the variable (so we know how much
+                // to copy)
+                let typ = &self.identifier_to_var
+                    .get(name)
+                    .unwrap()
+                    .var_type;
+
+                let instr = if let VarType::Pointer(ref t) = *typ {
+                    assembly_helper::move_type(expr_reg,
+                                               Dereference(addr_register, 0),
+                                               t)
+                } else {
+                    panic!("Cannot dereference non pointer");
+                };
+
+                self.instructions.push(instr);
             }
             Statement::Call(ref fn_call) => {
                 let reg = self.evaluate_expression(&fn_call.arg_expr);
@@ -417,7 +424,11 @@ impl X86CodeGenerator {
         };
 
         self.current_function = name.clone();
-        let var = LocalVariable::new(WORD_SIZE * 2, VarType::Int);
+        let var = LocalVariable::new(WORD_SIZE * 2,
+                                     fun.fn_type.arg_types
+                                     .get(0)
+                                     .unwrap()
+                                     .clone());
         self.identifier_to_var.insert(fun.arg.clone(), var);
 
         let mut code = String::new();
@@ -444,7 +455,8 @@ impl X86CodeGenerator {
 
 impl GeneratesCode for X86CodeGenerator {
 
-    fn generate_code(&mut self, functions: &Vec<Function>) -> String {
+    fn generate_code(&mut self, prog: &Program) -> String {
+        let functions = &prog.functions;
         let asm_header = ".section .data\n\
                           decimal_format_str: .asciz \"%d\\n\"\n\
                           .section .text\n\

@@ -1,18 +1,19 @@
-mod scanner;
-mod parser;
+mod code_block;
+mod assembly;
+mod assembly_helper;
+mod assembly_printer;
 mod ast;
-mod x86_code_generator;
 mod code_generator;
 mod lexeme;
+mod parser;
+mod scanner;
 mod token_stream;
-mod assembly;
-mod assembly_printer;
-mod assembly_helper;
+mod x86_code_generator;
 
-use std::io::prelude::*;
-use std::fs::File;
 use std::env;
 use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 
 
@@ -60,10 +61,13 @@ fn main() {
     let program_text = result.unwrap();
 
     let mut tokens = scanner::get_tokens(&program_text);
-    let function_asts = parser::parse_program(&mut tokens);
+    let prog = parser::parse_program(&mut tokens);
+
+    //let mut type_checker = type_checker::TypeChecker::new();
+    //type_checker.check_types(&prog);
 
     let mut code_generator = x86_code_generator::X86CodeGenerator::new();
-    let codestr = code_generator.generate_code(&function_asts);
+    let codestr = code_generator.generate_code(&prog);
 
     write_code(&codestr);
 }

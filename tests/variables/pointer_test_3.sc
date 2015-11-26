@@ -1,9 +1,9 @@
 // 2
-fn getVal(arg) {
+fn int getVal(pointer(int) arg) {
    return *arg;
 }
 
-fn main(arg) {
+fn int main(int arg) {
    let int x = 2;
    print call(getVal, &x);
    return 0;

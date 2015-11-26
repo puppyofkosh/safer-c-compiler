@@ -1,5 +1,5 @@
 // 0
-fn main (arg)
+fn int main (int arg)
 {
         print 13 < 12 ;
 }

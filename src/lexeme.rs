@@ -1,4 +1,4 @@
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum OperatorType {
     Plus,
     Minus,
@@ -10,6 +10,13 @@ pub enum OperatorType {
     CompareGreaterOrEqual,
     CompareLessOrEqual,
     CompareNotEqual,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum VarType {
+    Int,
+    Char,
+    Pointer,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -33,6 +40,6 @@ pub enum Lexeme {
     StartBlock, // {
     EndBlock,
     Comma,
-    IntType,
-    CharType,
+    Type(VarType),
+
 }

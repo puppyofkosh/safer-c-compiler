@@ -1,5 +1,5 @@
 // 2
-fn main (arg)
+fn int main (int arg)
 {
         print 1 - 2 + 3 ;
 }

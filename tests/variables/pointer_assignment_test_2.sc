@@ -1,10 +1,10 @@
 // 5
-fn setFive(arg) {
+fn int setFive(pointer(int) arg) {
    *arg = 5;
    return 0;
 }
 
-fn main(arg) {
+fn int main(int arg) {
    let int x = 11;
    call(setFive, &x);
 

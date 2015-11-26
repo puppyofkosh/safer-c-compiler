@@ -1,8 +1,8 @@
 // 5
-fn f(arg) {
+fn int f(int arg) {
    return 5;
 }
 
-fn main(arg) {
+fn int main(int arg) {
    print call(f, 123) ;
 }

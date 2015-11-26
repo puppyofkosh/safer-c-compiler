@@ -4,13 +4,20 @@ pub struct FunctionCall {
     pub arg_expr: Box<Expression>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum VarType {
     Int,
     Char,
+    Pointer(Box<VarType>),
 }
 
 #[derive(Debug, Clone)]
+pub struct FunctionType {
+    pub return_type: VarType,
+    pub arg_types: Vec<VarType>,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum BinaryOp {
     Plus,
     Minus,
@@ -50,5 +57,12 @@ pub enum Statement {
 pub struct Function {
     pub name: String,
     pub statements: Vec<Statement>,
+
     pub arg: String,
+
+    pub fn_type: FunctionType,
+}
+
+pub struct Program {
+    pub functions: Vec<Function>,
 }

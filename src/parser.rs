@@ -1,11 +1,12 @@
+use ast;
 use ast::FunctionCall;
 use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
 use ast::Function;
-use ast::VarType;
-use lexeme::Lexeme;
 
+use lexeme;
+use lexeme::Lexeme;
 use lexeme::Lexeme::Identifier;
 
 use lexeme::OperatorType;
@@ -27,11 +28,11 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
     }
 }
 
-fn type_lexeme_to_type(t: Lexeme) -> VarType {
+fn lexeme_var_type_to_ast(t: lexeme::VarType) -> ast::VarType {
     match t {
-        Lexeme::IntType => VarType::Int,
-        Lexeme::CharType => VarType::Char,
-        _ => panic!("This lexeme isn't a type"),
+        lexeme::VarType::Int => ast::VarType::Int,
+        lexeme::VarType::Char => ast::VarType::Char,
+        lexeme::VarType::Pointer => panic!("Use parse_type function!")
     }
 }
 
@@ -183,6 +184,22 @@ fn parse_expression(tokens: &mut TokenStream) -> Expression {
     rpn
 }
 
+fn parse_type(tokens: &mut TokenStream) -> ast::VarType {
+    let tok = tokens.consume();
+    if let Lexeme::Type(t) = tok {
+        if t == lexeme::VarType::Pointer {
+            assert_eq!(tokens.consume(), Lexeme::LParen);
+            let res = ast::VarType::Pointer(Box::new(parse_type(tokens)));
+            assert_eq!(tokens.consume(), Lexeme::RParen);
+            return res;
+        } else {
+            return lexeme_var_type_to_ast(t);
+        }
+    } else {
+        panic!("Unexpected token! {:?}", tok);
+    }
+}
+
 fn parse_return(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Return);
     assert!(!tokens.is_empty());
@@ -227,7 +244,7 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Let);
     assert!(!tokens.is_empty());
     
-    let var_type = type_lexeme_to_type(tokens.consume());
+    let var_type = parse_type(tokens);
 
     if let Identifier(name) = tokens.consume() {
         assert_eq!(tokens.consume(), Lexeme::Assign);
@@ -288,8 +305,12 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
     assert_eq!(tokens.consume(), Lexeme::Function);
     assert!(!tokens.is_empty());
 
+    let return_type = parse_type(tokens);
+
     if let Identifier(fn_name) = tokens.consume() {
         assert_eq!(tokens.consume(), Lexeme::LParen);
+        
+        let arg_type = parse_type(tokens);
         
         if let Identifier(fn_arg) = tokens.consume() {
             assert_eq!(tokens.consume(), Lexeme::RParen);
@@ -297,7 +318,12 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
             let statements = parse_block(tokens);
             return Function {name: fn_name,
                              statements: statements,
-                             arg: fn_arg};
+                             arg: fn_arg,
+                             fn_type: ast::FunctionType {
+                                 arg_types: vec![arg_type],
+                                 return_type: return_type,
+                             }
+            }
         }
     }
     panic!("Expected fn <function name> (<arg>)");
@@ -340,10 +366,10 @@ pub fn parse_block(tokens: &mut TokenStream) -> Vec<Statement> {
     panic!("Block did not end with a EndBlock lexeme");
 }
 
-pub fn parse_program(tokens: &mut TokenStream) -> Vec<Function> {
+pub fn parse_program(tokens: &mut TokenStream) -> ast::Program {
     let mut out = Vec::new();
     while !tokens.is_empty() {
         out.push(parse_function(tokens));
     }
-    out
+    ast::Program{functions: out}
 }

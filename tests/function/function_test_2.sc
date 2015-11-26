@@ -1,5 +1,5 @@
 // 11
-fn getValue(arg) {
+fn int getValue(int arg) {
    let int v = 11;
    let int y = 6;
    if v == y {
@@ -12,7 +12,7 @@ fn getValue(arg) {
    return v;
 }
 
-fn main(arg) {
+fn int main(int arg) {
    call(getValue, 0) ;
    return 0;
 }

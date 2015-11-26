@@ -5,7 +5,6 @@ pub enum RegisterVal {
     ESP, EBP
 }
 
-
 #[derive(PartialEq, Debug, Clone)]
 pub enum Operand {
     Register(RegisterVal),
@@ -15,14 +14,6 @@ pub enum Operand {
     VariableStatic(&'static str),
 }
 
-pub fn get_low_byte(o: &RegisterVal) -> RegisterVal {
-    match *o {
-        RegisterVal::EAX => RegisterVal::AL,
-        RegisterVal::EBX => RegisterVal::BL,
-        RegisterVal::ECX => RegisterVal::CL,
-        _ => panic!("Register doesn't have low byte"),
-    }
-}
 
 pub enum Instruction {
     Add(Operand, Operand),

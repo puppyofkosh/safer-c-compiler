@@ -1,5 +1,5 @@
 // 5;
-fn main(arg)
+fn int main(int arg)
 {
         let int x = 0;
         while x < 5

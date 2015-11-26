@@ -1,5 +1,5 @@
 // 21
-fn fun(x) {
+fn int fun(int x) {
    if x == 21 {
       print x;
       return x;
@@ -9,7 +9,7 @@ fn fun(x) {
    return (x + y) - 50;
 }
 
-fn main(arg) {
+fn int main(int arg) {
    call(fun, 21) ;
    return 0;
 }

@@ -1,5 +1,5 @@
 // hello world 5
-fn main(arg) {
+fn int main(int arg) {
    let int y = 222;
    let int x = "hello world ";
    call(printf, x);
