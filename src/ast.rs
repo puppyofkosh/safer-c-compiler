@@ -11,7 +11,7 @@ pub enum VarType {
     Pointer(Box<VarType>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FunctionType {
     pub return_type: VarType,
     pub arg_types: Vec<VarType>,

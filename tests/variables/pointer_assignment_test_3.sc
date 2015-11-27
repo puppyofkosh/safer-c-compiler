@@ -8,7 +8,7 @@ fn int main(int arg) {
 
    let pointer(char) p = &w;
    // Should only change value of w if we did this correctly
-   *p = 999;
+   *p = 23;
 
    print z + x + y;
 }

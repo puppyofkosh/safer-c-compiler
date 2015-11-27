@@ -8,6 +8,7 @@ mod lexeme;
 mod parser;
 mod scanner;
 mod token_stream;
+mod type_checker;
 mod x86_code_generator;
 
 use std::env;
@@ -63,8 +64,17 @@ fn main() {
     let mut tokens = scanner::get_tokens(&program_text);
     let prog = parser::parse_program(&mut tokens);
 
-    //let mut type_checker = type_checker::TypeChecker::new();
-    //type_checker.check_types(&prog);
+    let mut type_checker = type_checker::TypeChecker::new();
+    let passed = type_checker.check_types(&prog);
+
+    if !passed {
+        println!("did not pass type checker!");
+        
+        for err in type_checker.get_errors() {
+            println!("{}", err);
+        }
+        return;
+    }
 
     let mut code_generator = x86_code_generator::X86CodeGenerator::new();
     let codestr = code_generator.generate_code(&prog);

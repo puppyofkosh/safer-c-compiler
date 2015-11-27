@@ -1,5 +1,6 @@
 use ast::Expression;
-use ast::Function;
+use ast::FunctionType;
+use ast::FunctionCall;
 use ast::Program;
 use ast::Statement;
 use ast::VarType::*;
@@ -14,17 +15,61 @@ pub struct TypeChecker {
     variable_to_type: HashMap<String, VarType>,
     blocks: Vec<CodeBlock>,
 
+    current_fn: String,
     function_to_type: HashMap<String, ast::FunctionType>,
+}
+
+fn type_contains(parent: &VarType, child: &VarType) -> bool {
+    parent == child || (*parent == Int && *child == Char)
 }
 
 impl TypeChecker {
     pub fn new() -> TypeChecker {
-        TypeChecker {
+        let mut t = TypeChecker {
             errors_found: Vec::new(),
             variable_to_type: HashMap::new(),
             blocks: Vec::new(),
             function_to_type: HashMap::new(),
+            current_fn: "".to_string(),
+        };
+        
+        // TODO: Varargs functions
+        t.function_to_type.insert("printf".to_string(),
+                                  FunctionType {
+                                      return_type: Int,
+                                      arg_types: vec![Pointer(Box::new(Char))],
+                                  });
+        t
+    }
+
+    fn check_function_call(&mut self,
+                           call: &FunctionCall) -> Option<VarType> {
+        // Make sure the type of the argument makes sense
+        let arg_type_opt = self.get_type(&call.arg_expr);
+        if arg_type_opt.is_none() {
+            return None;
         }
+        let arg_type = arg_type_opt.unwrap();
+
+        // Make sure the function exists
+        let fn_type_opt = self.function_to_type.get(&call.name);
+        if fn_type_opt.is_none() {
+            self.errors_found.push(format!("Unkown function {}",
+                                           call.name));
+            return None
+        }
+        let fn_type = fn_type_opt.unwrap();
+
+        // Make sure the type of the argument matches the type we expect
+        let param_type = fn_type.arg_types.first().unwrap();
+        if !type_contains(param_type, &arg_type) {
+            let err = format!("Expected type {:?} but got type {:?}",
+                              param_type, arg_type);
+            self.errors_found.push(err);
+            return None;
+        }
+
+        Some(fn_type.return_type.clone())
     }
 
     fn get_var_type_or_report(&mut self, name: &str) -> Option<&VarType> {
@@ -35,8 +80,32 @@ impl TypeChecker {
         res
     }
 
+    fn get_type_pointed_to_or_report(&mut self, name: &str) -> Option<VarType> {
+        let mut is_ptr = false;
+        let res = 
+        {
+            let var_type_opt = self.get_var_type_or_report(name);
+            if var_type_opt.is_none() {
+                None
+            } else if let Some(&Pointer(ref t)) = var_type_opt {
+                is_ptr = true;
+                Some((**t).clone())
+            } else {
+                None
+            }
+        };
+        
+        if !is_ptr {
+            self.errors_found
+                .push(format!("Cannot dereference non pointer, {}",
+                              name));
+        }
+        res
+    }
+
     fn get_type(&mut self, expr: &Expression) -> Option<VarType> {
         match *expr {
+            Expression::Value(v) if v >= 0 && v < 256 => Some(Char),
             Expression::Value(_) => Some(Int),
             Expression::Variable(ref name) => {
                 self.get_var_type_or_report(name).cloned()
@@ -65,13 +134,18 @@ impl TypeChecker {
                 }
             }
             Expression::Call(ref fn_call) => {
-                None
+                self.check_function_call(&fn_call)
             }
-            Expression::Reference(_) => {
-                None
+            Expression::Reference(ref name) => {
+                let var_type_opt = self.get_var_type_or_report(name);
+                if let Some(t) = var_type_opt {
+                    Some(Pointer(Box::new(t.clone())))
+                } else {
+                    None
+                }
             }
-            Expression::Dereference(_) => {
-                None
+            Expression::Dereference(ref name) => {
+                self.get_type_pointed_to_or_report(name)
             }
         }
     }
@@ -79,24 +153,47 @@ impl TypeChecker {
     fn check_types_stmt(&mut self, stmt: &Statement) -> bool {
         match *stmt {
             Statement::Return(ref expr) => {
-                // TODO: Check type of expression is same as return
-                // type of current function
-                true
+                let expr_type = self.get_type(expr);
+                let ret_type = &self.function_to_type
+                    .get(&self.current_fn)
+                    .unwrap()
+                    .return_type;
+
+                expr_type.and_then(|typ| Some(typ == *ret_type)).is_some()
             }
             Statement::Print(ref expr) => {
-                self.get_type(expr) == Some(Int)
+                let typ = self.get_type(expr);
+                let res = typ.is_some() && type_contains(&Int, typ.as_ref().unwrap());
+                if !res {
+                    self.errors_found.push(
+                        format!("Cannot print something of type {:?}", typ));
+                }
+                res
             }
             Statement::If(ref expr, ref stmts) => {
                 let expr_type = self.get_type(expr);
                 self.check_types_block(stmts) && expr_type.is_some()
             }
             Statement::While(ref expr, ref stmts) => {
-                false
+                let expr_type = self.get_type(expr);
+                self.check_types_block(stmts) && expr_type.is_some()
             }
-            Statement::Let(ref name, ref expr_type, ref expr) => {
-                let res = self.get_type(expr).as_ref() == Some(expr_type);
-                if res {
-                    self.variable_to_type.insert(name.clone(), expr_type.clone());
+            Statement::Let(ref name, ref var_type, ref expr) => {
+                let expr_type_opt = self.get_type(expr);
+                let mut res = false;
+                if let Some(expr_type) = expr_type_opt.as_ref() {
+                    if type_contains(var_type, &expr_type) {
+                        self.blocks.last_mut().unwrap().declared_variables
+                            .insert(name.clone());
+                        self.variable_to_type.insert(name.clone(), var_type.clone());
+                        res = true
+                    }
+                }
+
+                if !res {
+                    self.errors_found.push(
+                        format!("Cant assign type {:?} to var of type {:?}",
+                                expr_type_opt, var_type));
                 }
                 res
             }
@@ -104,13 +201,19 @@ impl TypeChecker {
                 let t = self.get_type(expr);
                 let expected = self.get_var_type_or_report(name);
 
-                t.as_ref() == expected
+                t.is_some() && expected.is_some() && 
+                    type_contains(&expected.unwrap(), &t.unwrap())
             }
             Statement::AssignToDereference(ref name, ref expr) => {
-                false
+                let pointed_to_type = self.get_type_pointed_to_or_report(name);
+                let expr_type = self.get_type(expr);
+
+                pointed_to_type.is_some() && expr_type.is_some() &&
+                    type_contains(&pointed_to_type.unwrap(),
+                                  &expr_type.unwrap())
             }
             Statement::Call(ref call) => {
-                false
+                self.check_function_call(call).is_some()
             }
         }
     }
@@ -137,13 +240,22 @@ impl TypeChecker {
         for fun in &program.functions {
             self.function_to_type.insert(fun.name.clone(),
                                          fun.fn_type.clone());
+            self.current_fn = fun.name.clone();
+            self.variable_to_type.insert(fun.arg.clone(),
+                                         fun.fn_type.arg_types
+                                         .first().unwrap().clone());
 
             if !self.check_types_block(&fun.statements) {
-                println!("Did not pass type checker!");
                 res = false;
             }
+
+            self.variable_to_type.remove(&fun.name);
         }
-        println!("Type checker done!");
+
         res
+    }
+
+    pub fn get_errors(&self) -> Vec<String> {
+        self.errors_found.clone()
     }
 }
