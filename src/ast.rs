@@ -17,7 +17,7 @@ pub struct FunctionType {
     pub arg_types: Vec<VarType>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum BinaryOp {
     Plus,
     Minus,

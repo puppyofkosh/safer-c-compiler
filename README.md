@@ -14,10 +14,11 @@ The output of the program will then show in the terminal.
 python tester.py
 
 [To do list (stuff we need to do!)]
-Else statements
-functions with multiple args
-for loops
-types
+-Else statements
+-pointer arithmetic
+-functions with multiple args
+-Eliminate "call()" and replace it with just being able to call functions
+-structs
+
 figure out how to link with crt's _start function
-rust safety
-pointers
+safety

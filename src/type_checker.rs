@@ -8,6 +8,10 @@ use ast::VarType;
 use ast;
 use code_block::CodeBlock;
 
+use type_checker_helper::type_contains;
+use type_checker_helper::is_pointer;
+use type_checker_helper::is_pointer_arithmetic;
+
 use std::collections::HashMap;
 
 pub struct TypeChecker {
@@ -17,10 +21,6 @@ pub struct TypeChecker {
 
     current_fn: String,
     function_to_type: HashMap<String, ast::FunctionType>,
-}
-
-fn type_contains(parent: &VarType, child: &VarType) -> bool {
-    parent == child || (*parent == Int && *child == Char)
 }
 
 impl TypeChecker {
@@ -103,6 +103,43 @@ impl TypeChecker {
         res
     }
 
+    fn get_binary_op_expr_type(&mut self, 
+                               op: &ast::BinaryOp, l: &Expression,
+                               r: &Expression) -> Option<VarType> {
+        let l_type_opt = self.get_type(l);
+        let r_type_opt = self.get_type(r);
+
+        if l_type_opt.is_none() || r_type_opt.is_none() {
+            return None
+        }
+
+        let l_type = l_type_opt.unwrap();
+        let r_type = r_type_opt.unwrap();
+
+        if is_pointer_arithmetic(&l_type, &r_type, *op) {
+            if is_pointer(&l_type) {
+                return Some(l_type);
+            } else {
+                return Some(r_type);
+            }
+        }
+
+        if type_contains(&Int, &l_type) &&
+            type_contains(&Int, &r_type) {
+                // Adding two ints or two chars
+                if l_type == r_type && l_type == Char {
+                    Some(Char)
+                } else {
+                    Some(Int)
+                }
+            } else {
+                self.errors_found.push(format!(
+                    "Cannot do operation {:?} on types {:?} and {:?}",
+                    op, l_type, r_type));
+                None
+            }
+    }
+
     fn get_type(&mut self, expr: &Expression) -> Option<VarType> {
         match *expr {
             Expression::Value(v) if v >= 0 && v < 256 => Some(Char),
@@ -112,26 +149,7 @@ impl TypeChecker {
             }
             Expression::StringValue(_) => Some(Pointer(Box::new(Char))),
             Expression::BinaryOp(ref op, ref l, ref r) => {
-                // TODO: Actually write this
-                // If we add an int to a pointer, we get a pointer
-                // we cannot multiply ints and pointers though
-                let l_type = self.get_type(l);
-                let r_type = self.get_type(r);
-
-                let are_equal = l_type == r_type;
-                let is_one_int = l_type == Some(Int) || r_type == Some(Int);
-                let is_one_char = l_type == Some(Char) || r_type == Some(Char);
-
-                if are_equal && (is_one_int || is_one_char) {
-                    l_type
-                } else if is_one_char && is_one_int {
-                    Some(Int)
-                } else {
-                    self.errors_found.push(format!(
-                        "Cannot do operation {:?} on types {:?} and {:?}",
-                        op, l_type, r_type));
-                    None
-                }
+                self.get_binary_op_expr_type(op, l, r)
             }
             Expression::Call(ref fn_call) => {
                 self.check_function_call(&fn_call)

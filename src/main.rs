@@ -9,6 +9,7 @@ mod parser;
 mod scanner;
 mod token_stream;
 mod type_checker;
+mod type_checker_helper;
 mod x86_code_generator;
 
 use std::env;
@@ -66,7 +67,6 @@ fn main() {
 
     let mut type_checker = type_checker::TypeChecker::new();
     let passed = type_checker.check_types(&prog);
-
     if !passed {
         println!("did not pass type checker!");
         
