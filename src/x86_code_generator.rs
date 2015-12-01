@@ -3,6 +3,7 @@
 
 use ast::Statement;
 use ast::Expression;
+use ast::AstExpressionNode;
 use ast::BinaryOp;
 use ast::Function;
 use ast::VarType;
@@ -130,7 +131,8 @@ impl X86CodeGenerator {
     // Generate code to evaluate an expression and return the operand where
     // the result is stored
     fn evaluate_expression(&mut self,
-                           expr: &Expression) -> Operand {
+                           expr_node: &AstExpressionNode) -> Operand {
+        let expr = &expr_node.expr;
         match *expr {
             Expression::Call(ref fn_call) => {
                 let reg = self.evaluate_expression(&fn_call.arg_expr);
@@ -199,8 +201,8 @@ impl X86CodeGenerator {
         }
     }
 
-    fn evaluate_return_statement(&mut self, value: &Expression) {
-        let out_reg = self.evaluate_expression(&value);
+    fn evaluate_return_statement(&mut self, value: &AstExpressionNode) {
+        let out_reg = self.evaluate_expression(value);
         let instr = &mut self.instructions;
         // For now everything goes into eax
         if out_reg != Register(EAX) {
@@ -341,16 +343,17 @@ impl X86CodeGenerator {
 
     fn evaluate_binary_op(&mut self,
                           op: &BinaryOp,
-                          l: &Expression, r: &Expression) -> Operand {
+                          l_node: &AstExpressionNode,
+                          r_node: &AstExpressionNode) -> Operand {
         self.instructions.push(Comment("Evaluating binary operation"
                                        .to_string()));
 
-        let left_register = self.evaluate_expression(&l);
+        let left_register = self.evaluate_expression(l_node);
         // Save the value that we computed in case evaluating
         // the right side overwrites this register
         self.instructions.push(Push(left_register));
         
-        let right_register = self.evaluate_expression(&r);
+        let right_register = self.evaluate_expression(r_node);
 
         // For now we use Register(EAX) for everything
         if right_register != Register(EAX) {
@@ -441,7 +444,8 @@ impl X86CodeGenerator {
         }
         self.evaluate_block(&fun.statements);
         if name == "_start" {
-            let ret_stmt = Statement::Return(Box::new(Expression::Value(0)));
+            let expr = AstExpressionNode::new(Expression::Value(0));
+            let ret_stmt = Statement::Return(Box::new(expr));
             self.evaluate_statement(&ret_stmt);
         }
 

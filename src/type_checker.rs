@@ -1,3 +1,4 @@
+use ast::AstExpressionNode;
 use ast::Expression;
 use ast::FunctionType;
 use ast::FunctionCall;
@@ -13,6 +14,11 @@ use type_checker_helper::is_pointer;
 use type_checker_helper::is_pointer_arithmetic;
 
 use std::collections::HashMap;
+
+
+// FIXME:/ TODO:
+// Rename some things "annotate_" rather than get_
+
 
 pub struct TypeChecker {
     errors_found: Vec<String>,
@@ -43,9 +49,9 @@ impl TypeChecker {
     }
 
     fn check_function_call(&mut self,
-                           call: &FunctionCall) -> Option<VarType> {
+                           call: &mut FunctionCall) -> Option<VarType> {
         // Make sure the type of the argument makes sense
-        let arg_type_opt = self.get_type(&call.arg_expr);
+        let arg_type_opt = self.get_type(&mut call.arg_expr);
         if arg_type_opt.is_none() {
             return None;
         }
@@ -104,8 +110,8 @@ impl TypeChecker {
     }
 
     fn get_binary_op_expr_type(&mut self, 
-                               op: &ast::BinaryOp, l: &Expression,
-                               r: &Expression) -> Option<VarType> {
+                               op: &ast::BinaryOp, l: &mut AstExpressionNode,
+                               r: &mut AstExpressionNode) -> Option<VarType> {
         let l_type_opt = self.get_type(l);
         let r_type_opt = self.get_type(r);
 
@@ -140,7 +146,12 @@ impl TypeChecker {
             }
     }
 
-    fn get_type(&mut self, expr: &Expression) -> Option<VarType> {
+    // FIXME
+    // TODO:
+    // Return a reference instead
+    fn get_type(&mut self, expr_node: &mut AstExpressionNode) -> Option<VarType> {
+        let expr = &mut expr_node.expr;
+        let typ = 
         match *expr {
             Expression::Value(v) if v >= 0 && v < 256 => Some(Char),
             Expression::Value(_) => Some(Int),
@@ -148,11 +159,11 @@ impl TypeChecker {
                 self.get_var_type_or_report(name).cloned()
             }
             Expression::StringValue(_) => Some(Pointer(Box::new(Char))),
-            Expression::BinaryOp(ref op, ref l, ref r) => {
+            Expression::BinaryOp(ref op, ref mut l, ref mut r) => {
                 self.get_binary_op_expr_type(op, l, r)
             }
-            Expression::Call(ref fn_call) => {
-                self.check_function_call(&fn_call)
+            Expression::Call(ref mut fn_call) => {
+                self.check_function_call(fn_call)
             }
             Expression::Reference(ref name) => {
                 let var_type_opt = self.get_var_type_or_report(name);
@@ -165,12 +176,14 @@ impl TypeChecker {
             Expression::Dereference(ref name) => {
                 self.get_type_pointed_to_or_report(name)
             }
-        }
+        };
+        expr_node.typ = typ;
+        expr_node.typ.clone()
     }
 
-    fn check_types_stmt(&mut self, stmt: &Statement) -> bool {
+    fn check_types_stmt(&mut self, stmt: &mut Statement) -> bool {
         match *stmt {
-            Statement::Return(ref expr) => {
+            Statement::Return(ref mut expr) => {
                 let expr_type = self.get_type(expr);
                 let ret_type = &self.function_to_type
                     .get(&self.current_fn)
@@ -179,7 +192,7 @@ impl TypeChecker {
 
                 expr_type.and_then(|typ| Some(typ == *ret_type)).is_some()
             }
-            Statement::Print(ref expr) => {
+            Statement::Print(ref mut expr) => {
                 let typ = self.get_type(expr);
                 let res = typ.is_some() && type_contains(&Int, typ.as_ref().unwrap());
                 if !res {
@@ -188,15 +201,15 @@ impl TypeChecker {
                 }
                 res
             }
-            Statement::If(ref expr, ref stmts) => {
+            Statement::If(ref mut expr, ref mut stmts) => {
                 let expr_type = self.get_type(expr);
                 self.check_types_block(stmts) && expr_type.is_some()
             }
-            Statement::While(ref expr, ref stmts) => {
+            Statement::While(ref mut expr, ref mut stmts) => {
                 let expr_type = self.get_type(expr);
                 self.check_types_block(stmts) && expr_type.is_some()
             }
-            Statement::Let(ref name, ref var_type, ref expr) => {
+            Statement::Let(ref name, ref var_type, ref mut expr) => {
                 let expr_type_opt = self.get_type(expr);
                 let mut res = false;
                 if let Some(expr_type) = expr_type_opt.as_ref() {
@@ -215,14 +228,14 @@ impl TypeChecker {
                 }
                 res
             }
-            Statement::Assign(ref name, ref expr) => {
+            Statement::Assign(ref name, ref mut expr) => {
                 let t = self.get_type(expr);
                 let expected = self.get_var_type_or_report(name);
 
                 t.is_some() && expected.is_some() && 
                     type_contains(&expected.unwrap(), &t.unwrap())
             }
-            Statement::AssignToDereference(ref name, ref expr) => {
+            Statement::AssignToDereference(ref name, ref mut expr) => {
                 let pointed_to_type = self.get_type_pointed_to_or_report(name);
                 let expr_type = self.get_type(expr);
 
@@ -230,17 +243,17 @@ impl TypeChecker {
                     type_contains(&pointed_to_type.unwrap(),
                                   &expr_type.unwrap())
             }
-            Statement::Call(ref call) => {
+            Statement::Call(ref mut call) => {
                 self.check_function_call(call).is_some()
             }
         }
     }
 
-    fn check_types_block(&mut self, stmts: &Vec<Statement>) -> bool {
+    fn check_types_block(&mut self, stmts: &mut Vec<Statement>) -> bool {
         self.blocks.push(CodeBlock::new());
         let mut res = true;
-        for stmt in stmts {
-            if !self.check_types_stmt(&stmt) {
+        for stmt in stmts.iter_mut() {
+            if !self.check_types_stmt(stmt) {
                 res = false;
             }
         }
@@ -253,9 +266,9 @@ impl TypeChecker {
         res
     }
 
-    pub fn check_types(&mut self, program: &Program) -> bool {
+    pub fn check_types(&mut self, program: &mut Program) -> bool {
         let mut res = true;
-        for fun in &program.functions {
+        for fun in program.functions.iter_mut() {
             self.function_to_type.insert(fun.name.clone(),
                                          fun.fn_type.clone());
             self.current_fn = fun.name.clone();
@@ -263,7 +276,7 @@ impl TypeChecker {
                                          fun.fn_type.arg_types
                                          .first().unwrap().clone());
 
-            if !self.check_types_block(&fun.statements) {
+            if !self.check_types_block(&mut fun.statements) {
                 res = false;
             }
 

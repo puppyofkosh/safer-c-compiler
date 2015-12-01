@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub struct FunctionCall {
     pub name: String,
-    pub arg_expr: Box<Expression>,
+    pub arg_expr: Box<AstExpressionNode>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -36,21 +36,37 @@ pub enum Expression {
     Value(i32),
     Variable(String),
     StringValue(String),
-    BinaryOp(BinaryOp, Box<Expression>, Box<Expression>),
+    BinaryOp(BinaryOp, Box<AstExpressionNode>, Box<AstExpressionNode>),
     Call(FunctionCall),
     Reference(String),
     Dereference(String),
 }
 
 #[derive(Debug)]
+pub struct AstExpressionNode {
+    pub expr: Expression,
+    pub typ: Option<VarType>,
+}
+
+impl AstExpressionNode {
+    pub fn new(ex: Expression) -> AstExpressionNode {
+        AstExpressionNode {
+            expr: ex,
+            typ: None
+        }
+    }
+}
+
+
+#[derive(Debug)]
 pub enum Statement {
-    Return(Box<Expression>),
-    Print(Box<Expression>),
-    If(Box<Expression>, Vec<Statement>),
-    While(Box<Expression>, Vec<Statement>),
-    Let(String, VarType, Box<Expression>),
-    Assign(String, Box<Expression>),
-    AssignToDereference(String, Box<Expression>),
+    Return(Box<AstExpressionNode>),
+    Print(Box<AstExpressionNode>),
+    If(Box<AstExpressionNode>, Vec<Statement>),
+    While(Box<AstExpressionNode>, Vec<Statement>),
+    Let(String, VarType, Box<AstExpressionNode>),
+    Assign(String, Box<AstExpressionNode>),
+    AssignToDereference(String, Box<AstExpressionNode>),
     Call(FunctionCall),
 }
 

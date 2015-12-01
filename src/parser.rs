@@ -1,4 +1,5 @@
 use ast;
+use ast::AstExpressionNode;
 use ast::FunctionCall;
 use ast::Statement;
 use ast::Expression;
@@ -57,7 +58,8 @@ fn evaluate_bin_op(op: &OperatorType,
     let r = current_stack.pop().unwrap();
     let l = current_stack.pop().unwrap();
     Expression::BinaryOp(optype_to_op(&op),
-                         Box::new(l), Box::new(r))
+                         Box::new(AstExpressionNode::new(l)),
+                         Box::new(AstExpressionNode::new(r)))
     
 }
 
@@ -179,9 +181,9 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     res
 }
 
-fn parse_expression(tokens: &mut TokenStream) -> Expression {
-    let rpn = two_stack_algo(tokens);
-    rpn
+fn parse_expression(tokens: &mut TokenStream) -> AstExpressionNode {
+    let expr = two_stack_algo(tokens);
+    AstExpressionNode::new(expr)
 }
 
 fn parse_type(tokens: &mut TokenStream) -> ast::VarType {
@@ -295,7 +297,7 @@ fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
         assert_eq!(tokens.consume(), Lexeme::RParen);
 
         FunctionCall {name:fn_name,
-                      arg_expr: Box::new(arg_expr)} 
+                      arg_expr: Box::new(arg_expr)}
     } else {
         panic!("Expected a function name");
   }
