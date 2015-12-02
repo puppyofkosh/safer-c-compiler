@@ -270,23 +270,14 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
 }
 
 fn parse_assignment(tokens: &mut TokenStream) -> Statement{
-    let is_deref = tokens.peek() == Lexeme::Operator(OperatorType::Star);
-    if is_deref {
-        tokens.consume();
-    }
-
-    let name = expect_identifier(tokens.consume());
+    // The type checker will make sure that the left expression
+    // is "assignable"
+    let left = parse_expression(tokens);
     assert_eq!(tokens.consume(), Lexeme::Assign);
-
-    let expr = parse_expression(tokens);
+    let right = parse_expression(tokens);
     assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
-    
-    if !is_deref {
-        Statement::Assign(name, expr)
-    } else {
-        Statement::AssignToDereference(name, expr)
-    }
 
+    Statement::Assign(left, right)
 }
 
 fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
@@ -368,8 +359,9 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
             assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
             Statement::Call(fn_call)
         },
-        Identifier(_s) => parse_assignment(tokens),
-        Lexeme::Operator(OperatorType::Star) => parse_assignment(tokens),
+        Identifier(_) | Lexeme::Operator(OperatorType::Star) => {
+            parse_assignment(tokens)
+        }
         _ => panic!("Unexpected lexeme {:?}", token),
     }
 }

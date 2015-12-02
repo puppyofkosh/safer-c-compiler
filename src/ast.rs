@@ -41,6 +41,7 @@ pub enum Expression {
     BinaryOp(BinaryOp, Box<AstExpressionNode>, Box<AstExpressionNode>),
     Call(FunctionCall),
     Reference(String),
+    // FIXME: Should eventually be an expression, not string vv
     Dereference(String),
 }
 
@@ -62,15 +63,14 @@ impl AstExpressionNode {
 
 #[derive(Debug)]
 pub enum Statement {
-    //Return(Box<AstExpressionNode>),
     Return(AstExpressionNode),
     Print(AstExpressionNode),
     If(AstExpressionNode, Vec<Statement>),
     While(AstExpressionNode, Vec<Statement>),
     Let(String, VarType, AstExpressionNode),
-    //Assign(AssignableExpression, Box<AstExpressionNode>),
-    Assign(String, AstExpressionNode),
-    AssignToDereference(String, AstExpressionNode),
+    Assign(AstExpressionNode, AstExpressionNode),
+    //Assign(String, AstExpressionNode),
+    //AssignToDereference(String, AstExpressionNode),
     Call(FunctionCall),
 }
 

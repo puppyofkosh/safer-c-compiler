@@ -9,6 +9,7 @@ use ast::VarType;
 use ast;
 use code_block::CodeBlock;
 
+use type_checker_helper;
 use type_checker_helper::type_contains;
 use type_checker_helper::is_pointer;
 use type_checker_helper::is_pointer_arithmetic;
@@ -227,20 +228,24 @@ impl TypeChecker {
                 }
                 res
             }
-            Statement::Assign(ref name, ref mut expr) => {
-                let t = self.annotate_type(expr);
-                let expected = self.get_var_type_or_report(name);
+            Statement::Assign(ref mut left, ref mut right) => {
+                let left_t = self.annotate_type(left);
+                let right_t = self.annotate_type(right);
 
-                t.is_some() && expected.is_some() && 
-                    type_contains(&expected.unwrap(), &t.unwrap())
-            }
-            Statement::AssignToDereference(ref name, ref mut expr) => {
-                let pointed_to_type = self.get_type_pointed_to_or_report(name);
-                let expr_type = self.annotate_type(expr);
-
-                pointed_to_type.is_some() && expr_type.is_some() &&
-                    type_contains(&pointed_to_type.unwrap(),
-                                  &expr_type.unwrap())
+                if !type_checker_helper::is_expression_assignable(left) {
+                    let err = format!("Cannot assign to expression {:?}",
+                                      left);
+                    self.errors_found.push(err);
+                    false
+                } else if !left_t.is_some() || !right_t.is_some() {
+                    false
+                } else if !type_contains(&left_t.unwrap(), &right_t.unwrap()) {
+                    self.errors_found.push(format!("Cannot assign {:?} to {:?}",
+                                           right, left));
+                    false
+                } else {
+                    true
+                }
             }
             Statement::Call(ref mut call) => {
                 self.check_function_call(call).is_some()

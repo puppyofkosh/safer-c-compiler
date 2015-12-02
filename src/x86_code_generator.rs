@@ -14,6 +14,7 @@ use assembly::Instruction::*;
 use assembly::Operand;
 use assembly::Operand::*;
 use assembly::RegisterVal::*;
+use assembly::RegisterVal;
 
 use assembly_printer::instruction_list_to_asm;
 
@@ -27,6 +28,7 @@ use assembly_helper;
 use assembly_helper::get_type_size;
 use assembly_helper::alloc_stack;
 use assembly_helper::free_stack;
+use assembly_helper::register_besides;
 use assembly_helper::WORD_SIZE;
 
 
@@ -99,7 +101,27 @@ impl X86CodeGenerator {
         let instr = assembly_helper::move_type(reg, to_operand, &var.var_type);
         self.instructions.push(instr);
     }
-                         
+
+    // Return a register and offset to write to assign to this expression
+    // Assumes the expression is "assignable," which the type checker
+    // checks.
+    // Example:
+    // x = y --> return address of x (register=EBP, off=offset)
+    // *x = y --> move x into a register, and return that
+    fn load_address_of_expr(&mut self,
+                            expr: &AstExpressionNode) -> (RegisterVal, i32) {
+        match expr.expr {
+            Expression::Variable(ref name) => {
+                let var = self.identifier_to_var.get(name).unwrap();
+                (EBP, var.stack_offset)
+            }
+            Expression::Dereference(ref name) => {
+                self.move_var_to_register(name, Register(EBX));
+                (EBX, 0)
+            }
+            _ => panic!("Cannot assign to this type of expr"),
+        }
+    }
 
     fn evaluate_block(&mut self, statements: &Vec<Statement>) {
         self.blocks.push(CodeBlock::new());
@@ -298,37 +320,32 @@ impl X86CodeGenerator {
                 self.instructions.push(alloc_stack(var_size));
                 self.move_value_to_var(reg, name);
             }
-            Statement::Assign(ref name, ref expr) => {
-                let reg = self.evaluate_expression(expr);
-                self.move_value_to_var(reg, name);
-            }
-            Statement::AssignToDereference(ref name, ref expr) => {
-                let expr_reg = self.evaluate_expression(expr);
+            Statement::Assign(ref left_expr, ref right_expr) => {
+                // Figure out where we're going to store this
+                let (mut addr_reg, off) = self.load_address_of_expr(left_expr);
+
+                if addr_reg != EBP {
+                    self.instructions.push(Push(Register(addr_reg)));
+                }
                 
-                let addr_register = if expr_reg == Register(EBX) {
-                    EAX
-                } else {
-                    EBX
-                };
+                // Evaluate the right hand expression. This means
+                // addr_reg now contains junk if its not EBP
+                let value_op = self.evaluate_expression(right_expr);
                 
-                // move the destination address into a register
-                self.move_var_to_register(name, Register(addr_register));
+                // Put the address we may have saved back into a register
+                // (We can put it in any register besides the register
+                // storing the expression's value)
+                if addr_reg != EBP {
+                    if let Register(reg) = value_op {
+                        addr_reg = register_besides(&reg);
+                    }
+                    self.instructions.push(Pop(Register(addr_reg)));
+                }
 
-                // Figure out the type of the variable (so we know how much
-                // to copy)
-                let typ = &self.identifier_to_var
-                    .get(name)
-                    .unwrap()
-                    .var_type;
-
-                let instr = if let VarType::Pointer(ref t) = *typ {
-                    assembly_helper::move_type(expr_reg,
-                                               Dereference(addr_register, 0),
-                                               t)
-                } else {
-                    panic!("Cannot dereference non pointer");
-                };
-
+                let left_type = left_expr.typ.as_ref().unwrap();
+                let instr = assembly_helper::move_type(value_op,
+                                           Dereference(addr_reg, off),
+                                           left_type);
                 self.instructions.push(instr);
             }
             Statement::Call(ref fn_call) => {

@@ -37,6 +37,14 @@ pub fn free_stack(size: i32) -> Instruction {
         Register(ESP))
 }
 
+pub fn register_besides(r: &RegisterVal) -> RegisterVal {
+    match *r {
+        EAX | AL => EBX,
+        EBX | BL => EAX,
+        ECX | CL => EBX,
+        ESP | EBP => panic!("What are you doing with this function?"),
+    }
+}
 
 pub fn get_low_byte(o: &RegisterVal) -> RegisterVal {
     match *o {
