@@ -44,6 +44,7 @@ pub enum Expression {
     Dereference(String),
 }
 
+// Part of AST. The "typ" field is set when we go to the type checker/annotator
 #[derive(Debug)]
 pub struct AstExpressionNode {
     pub expr: Expression,
@@ -59,16 +60,17 @@ impl AstExpressionNode {
     }
 }
 
-
 #[derive(Debug)]
 pub enum Statement {
-    Return(Box<AstExpressionNode>),
-    Print(Box<AstExpressionNode>),
-    If(Box<AstExpressionNode>, Vec<Statement>),
-    While(Box<AstExpressionNode>, Vec<Statement>),
-    Let(String, VarType, Box<AstExpressionNode>),
-    Assign(String, Box<AstExpressionNode>),
-    AssignToDereference(String, Box<AstExpressionNode>),
+    //Return(Box<AstExpressionNode>),
+    Return(AstExpressionNode),
+    Print(AstExpressionNode),
+    If(AstExpressionNode, Vec<Statement>),
+    While(AstExpressionNode, Vec<Statement>),
+    Let(String, VarType, AstExpressionNode),
+    //Assign(AssignableExpression, Box<AstExpressionNode>),
+    Assign(String, AstExpressionNode),
+    AssignToDereference(String, AstExpressionNode),
     Call(FunctionCall),
 }
 

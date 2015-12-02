@@ -220,14 +220,14 @@ fn parse_return(tokens: &mut TokenStream) -> Statement {
 
     let expr = parse_expression(tokens);
     assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
-    return Statement::Return(Box::new(expr));
+    return Statement::Return(expr);
 }
 
 
 fn parse_print(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Print);
     assert!(!tokens.is_empty());
-    let out = Statement::Print(Box::new(parse_expression(tokens)));
+    let out = Statement::Print(parse_expression(tokens));
 
     assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
     out
@@ -241,7 +241,7 @@ fn parse_if(tokens: &mut TokenStream) -> Statement {
     let condition = parse_expression(tokens);
     let block = parse_block(tokens);
 
-    Statement::If(Box::new(condition), block)
+    Statement::If(condition, block)
 }
 
 fn parse_while(tokens: &mut TokenStream) -> Statement {
@@ -251,7 +251,7 @@ fn parse_while(tokens: &mut TokenStream) -> Statement {
     let condition = parse_expression(tokens);
     let block = parse_block(tokens);
 
-    Statement::While(Box::new(condition), block)
+    Statement::While(condition, block)
 }
 
 fn parse_declaration(tokens: &mut TokenStream) -> Statement {
@@ -266,7 +266,7 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     let expr = parse_expression(tokens);
     assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
 
-    Statement::Let(name, var_type, Box::new(expr))
+    Statement::Let(name, var_type, expr)
 }
 
 fn parse_assignment(tokens: &mut TokenStream) -> Statement{
@@ -278,7 +278,7 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
     let name = expect_identifier(tokens.consume());
     assert_eq!(tokens.consume(), Lexeme::Assign);
 
-    let expr = Box::new(parse_expression(tokens));
+    let expr = parse_expression(tokens);
     assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
     
     if !is_deref {

@@ -445,7 +445,7 @@ impl X86CodeGenerator {
         self.evaluate_block(&fun.statements);
         if name == "_start" {
             let expr = AstExpressionNode::new(Expression::Value(0));
-            let ret_stmt = Statement::Return(Box::new(expr));
+            let ret_stmt = Statement::Return(expr);
             self.evaluate_statement(&ret_stmt);
         }
 
