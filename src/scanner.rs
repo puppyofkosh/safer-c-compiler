@@ -22,6 +22,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "let" => Lexeme::Let,
         "call" => Lexeme::Call,
         "fn" => Lexeme::Function,
+        "struct" => Lexeme::Struct,
         "int" => Lexeme::Type(VarType::Int),
         "char" => Lexeme::Type(VarType::Char),
         "pointer" => Lexeme::Type(VarType::Pointer),
@@ -49,7 +50,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
                 return Lexeme::StringConstant(token.to_string());
             }
 
-            if token.chars().all(|ch| ch.is_alphanumeric()) {
+            if token.chars().all(|ch| ch.is_alphanumeric() || ch == '_') {
                 Lexeme::Identifier(token.to_string())
             }
 
@@ -121,7 +122,7 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
             }
             'a'...'z' | 'A' ... 'Z' | '0'...'9' => {
                 while let Some(next_ch) = chars.front().cloned() {
-                    if !next_ch.is_alphanumeric() {
+                    if !next_ch.is_alphanumeric() && next_ch != '_' {
                         break;
                     }
                     s.push(chars.pop_front().unwrap());

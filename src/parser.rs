@@ -1,6 +1,7 @@
 use ast;
 use ast::AstExpressionNode;
 use ast::FunctionCall;
+use ast::StructDefinition;
 use ast::Statement;
 use ast::Expression;
 use ast::BinaryOp;
@@ -12,6 +13,8 @@ use lexeme::Lexeme::Identifier;
 
 use lexeme::OperatorType;
 use token_stream::TokenStream;
+
+use std::collections::HashMap;
 
 // FIXME: Do we really want to do this?
 fn optype_to_op(op: &OperatorType) -> BinaryOp {
@@ -49,6 +52,14 @@ fn get_precedence(op: &OperatorType) -> i32 {
         OperatorType::CompareNotEqual => 1,
         OperatorType::Star => 2,
         OperatorType::Divide => 2,
+    }
+}
+
+fn expect_identifier(t: Lexeme) -> String {
+    if let Lexeme::Identifier(s) = t {
+        s
+    } else {
+        panic!("Expected an identifier, instead got {:?}", t);
     }
 }
 
@@ -248,17 +259,13 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     
     let var_type = parse_type(tokens);
 
-    if let Identifier(name) = tokens.consume() {
-        assert_eq!(tokens.consume(), Lexeme::Assign);
+    let name = expect_identifier(tokens.consume());
+    assert_eq!(tokens.consume(), Lexeme::Assign);
 
-        let expr = parse_expression(tokens);
-        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+    let expr = parse_expression(tokens);
+    assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
 
-        Statement::Let(name, var_type, Box::new(expr))
-    }
-    else {
-        panic!("Expected an identifier");
-    }
+    Statement::Let(name, var_type, Box::new(expr))
 }
 
 fn parse_assignment(tokens: &mut TokenStream) -> Statement{
@@ -266,23 +273,19 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
     if is_deref {
         tokens.consume();
     }
-    let tok = tokens.consume();
 
-    if let Identifier(name) = tok {
-        assert_eq!(tokens.consume(), Lexeme::Assign);
+    let name = expect_identifier(tokens.consume());
+    assert_eq!(tokens.consume(), Lexeme::Assign);
 
-        let expr = Box::new(parse_expression(tokens));
-        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
-        
-        if !is_deref {
-            Statement::Assign(name, expr)
-        } else {
-            Statement::AssignToDereference(name, expr)
-        }
+    let expr = Box::new(parse_expression(tokens));
+    assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+    
+    if !is_deref {
+        Statement::Assign(name, expr)
+    } else {
+        Statement::AssignToDereference(name, expr)
     }
-    else {
-        panic!("Expected an identifier");
-    }
+
 }
 
 fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
@@ -308,27 +311,46 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
     assert!(!tokens.is_empty());
 
     let return_type = parse_type(tokens);
+    
+    let fn_name = expect_identifier(tokens.consume());
+    assert_eq!(tokens.consume(), Lexeme::LParen);
+    
+    let arg_type = parse_type(tokens);
 
-    if let Identifier(fn_name) = tokens.consume() {
-        assert_eq!(tokens.consume(), Lexeme::LParen);
-        
-        let arg_type = parse_type(tokens);
-        
-        if let Identifier(fn_arg) = tokens.consume() {
-            assert_eq!(tokens.consume(), Lexeme::RParen);
-            
-            let statements = parse_block(tokens);
-            return Function {name: fn_name,
-                             statements: statements,
-                             arg: fn_arg,
-                             fn_type: ast::FunctionType {
-                                 arg_types: vec![arg_type],
-                                 return_type: return_type,
-                             }
-            }
-        }
+    let fn_arg = expect_identifier(tokens.consume());
+    assert_eq!(tokens.consume(), Lexeme::RParen);
+    
+    let statements = parse_block(tokens);
+    return Function {name: fn_name,
+                     statements: statements,
+                     arg: fn_arg,
+                     fn_type: ast::FunctionType {
+                         arg_types: vec![arg_type],
+                         return_type: return_type,
+                     }
     }
-    panic!("Expected fn <function name> (<arg>)");
+}
+
+fn parse_struct(tokens: &mut TokenStream) -> StructDefinition {
+    assert_eq!(tokens.consume(), Lexeme::Struct);
+    let name = expect_identifier(tokens.consume());
+    assert_eq!(tokens.consume(), Lexeme::StartBlock);
+
+    let mut field_to_type = HashMap::new();
+    while tokens.peek() != Lexeme::EndBlock {
+        let typ = parse_type(tokens);
+        let field_name = expect_identifier(tokens.consume());
+
+        field_to_type.insert(field_name, typ);
+        
+        assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+    }
+    assert_eq!(tokens.consume(), Lexeme::EndBlock);
+
+    StructDefinition {
+        name: name,
+        fields: field_to_type,
+    }
 }
 
 fn parse_statement(tokens: &mut TokenStream) -> Statement {
@@ -369,9 +391,16 @@ pub fn parse_block(tokens: &mut TokenStream) -> Vec<Statement> {
 }
 
 pub fn parse_program(tokens: &mut TokenStream) -> ast::Program {
-    let mut out = Vec::new();
+    let mut functions = Vec::new();
+    let mut structs = Vec::new();
     while !tokens.is_empty() {
-        out.push(parse_function(tokens));
+        let t = tokens.peek();
+        match t {
+            Lexeme::Function => functions.push(parse_function(tokens)),
+            Lexeme::Struct => structs.push(parse_struct(tokens)),
+            _ => panic!("Illegal token {:?}", t),
+        }
     }
-    ast::Program{functions: out}
+    ast::Program{functions: functions,
+                 structs: structs}
 }

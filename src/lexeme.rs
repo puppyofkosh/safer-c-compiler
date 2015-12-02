@@ -33,6 +33,7 @@ pub enum Lexeme {
     Identifier(String),
     StringConstant(String),
     Return,
+    Struct,
     Print,
     LParen,
     RParen,

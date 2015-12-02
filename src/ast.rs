@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub struct FunctionCall {
     pub name: String,
@@ -79,6 +81,12 @@ pub struct Function {
     pub fn_type: FunctionType,
 }
 
+pub struct StructDefinition {
+    pub name: String,
+    pub fields: HashMap<String, VarType>,
+}
+
 pub struct Program {
     pub functions: Vec<Function>,
+    pub structs: Vec<StructDefinition>,
 }
