@@ -66,7 +66,7 @@ fn main() {
     let mut prog = parser::parse_program(&mut tokens);
 
     let mut type_checker = type_checker::TypeChecker::new();
-    let passed = type_checker.check_types(&mut prog);
+    let passed = type_checker.annotate_types(&mut prog);
     if !passed {
         println!("did not pass type checker!");
         

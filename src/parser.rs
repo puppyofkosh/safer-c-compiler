@@ -169,7 +169,8 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
                 }
             }
             _ => {
-                // We don't know what this token is, so we give it back.
+                // We don't know what this token is, so we give it back, and
+                // assume the expression ends here
                 tokens.push(tok);
                 break;
             },
@@ -303,7 +304,7 @@ fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
                       arg_expr: Box::new(arg_expr)}
     } else {
         panic!("Expected a function name");
-  }
+    }
 }
 
 fn parse_function(tokens: &mut TokenStream) -> Function {
