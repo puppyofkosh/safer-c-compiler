@@ -1,3 +1,9 @@
+// TODO: type checker: Cannot assign
+// struct to struct
+// TODO: change parser so you can do &x.y
+// Be able to assign to fields
+// struct within a struct
+
 mod code_block;
 mod assembly;
 mod assembly_helper;
@@ -11,6 +17,7 @@ mod token_stream;
 mod type_checker;
 mod type_checker_helper;
 mod x86_code_generator;
+mod representation_manager;
 
 use std::env;
 use std::error::Error;

@@ -1,13 +1,12 @@
 // 55
 struct MyStruct {
        int x;
-       pointer(int) y;
-       char z;
 }
 
 fn int main(int arg) {
    let MyStruct s;
 
-   print 55;
+   print &s.x;
+
    return 0;
 }

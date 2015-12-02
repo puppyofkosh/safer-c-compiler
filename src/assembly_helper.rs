@@ -1,3 +1,4 @@
+use assembly::MachineType;
 use assembly::Instruction::*;
 use assembly::Instruction;
 
@@ -11,11 +12,31 @@ use ast::VarType;
 
 pub const WORD_SIZE: i32 = 4;
 
+// TODO: Remove this function
 pub fn get_type_size(t: &VarType) -> i32 {
     match *t {
         VarType::Pointer(_) => WORD_SIZE,
         VarType::Int => WORD_SIZE,
         VarType::Char => 1,
+        VarType::Struct(_) => panic!("wth")
+    }
+}
+
+// TODO: Remove this function
+pub fn type_to_machine_type(t: &VarType) -> MachineType {
+    match *t {
+        VarType::Pointer(_) => MachineType::Long,
+        VarType::Int => MachineType::Long,
+        VarType::Char => MachineType::Byte,
+        VarType::Struct(_) => panic!("wth")
+    }
+}
+
+pub fn get_mtype_size(t: MachineType) -> i32 {
+    match t {
+        MachineType::Long => WORD_SIZE,
+        MachineType::Byte => 1,
+        MachineType::Chunk(i) => i
     }
 }
 
@@ -56,16 +77,14 @@ pub fn get_low_byte(o: &RegisterVal) -> RegisterVal {
 }
 
 pub fn move_type(from: Operand, to: Operand,
-             typ: &VarType) -> Instruction {
+                 typ: MachineType) -> Instruction {
     if to == from {
         return NOP;
     }
 
-
-    let sz = get_type_size(typ);
-    match sz {
-        WORD_SIZE => Move(from, to),
-        1 => {
+    match typ {
+        MachineType::Long => Move(from, to),
+        MachineType::Byte => {
             if let Register(_) = to {
                 OtherTwoArg("movzbl", from, to)
             } else if let Dereference(_, _) = to {
@@ -79,6 +98,6 @@ pub fn move_type(from: Operand, to: Operand,
                 panic!("You cannot move to {:?}", to);
             }
         }
-        _ => panic!("Unsupported type of size {}", sz)
+        _ => panic!("Unsupported type {:?}", typ)
     }
 }

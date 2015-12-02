@@ -19,6 +19,7 @@ python tester.py
 -functions with multiple args
 -Eliminate "call()" and replace it with just being able to call functions
 -structs
+- short circuit functions
 
 figure out how to link with crt's _start function
 safety

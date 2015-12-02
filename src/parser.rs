@@ -110,6 +110,15 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
             Lexeme::StringConstant(s) => {
                 output.push(Expression::StringValue(s));
             },
+            Lexeme::Dot => {
+                // We want to access the stuff we just parsed as a struct
+                
+                let field_name = expect_identifier(tokens.consume());
+                let prev_expr = AstExpressionNode::new(output.pop().unwrap());
+                let new_expr = Expression::FieldAccess(Box::new(prev_expr),
+                                                       field_name);
+                output.push(new_expr);
+            }
             Lexeme::Call => {
                 tokens.push(tok);
                 output.push(Expression::Call(parse_call(tokens)));
@@ -209,6 +218,8 @@ fn parse_type(tokens: &mut TokenStream) -> ast::VarType {
         } else {
             return lexeme_var_type_to_ast(t);
         }
+    } else if let Lexeme::Identifier(struct_name) = tok {
+        ast::VarType::Struct(struct_name)
     } else {
         panic!("Unexpected token! {:?}", tok);
     }
@@ -261,10 +272,15 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     let var_type = parse_type(tokens);
 
     let name = expect_identifier(tokens.consume());
-    assert_eq!(tokens.consume(), Lexeme::Assign);
 
-    let expr = parse_expression(tokens);
-    assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
+    let mut tok = tokens.consume();
+    let mut expr = None;
+    if tok == Lexeme::Assign {
+        expr = Some(parse_expression(tokens));
+        tok = tokens.consume();
+    }
+
+    assert_eq!(tok, Lexeme::EndOfStatement);
 
     Statement::Let(name, var_type, expr)
 }

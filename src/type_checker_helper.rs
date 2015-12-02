@@ -31,6 +31,7 @@ pub fn is_expression_assignable(expr_node: &AstExpressionNode) -> bool {
     match expr_node.expr {
         Expression::Variable(_) => true,
         Expression::Dereference(_) => true,
+        //Expression::FieldAccess(_,_) => true,
         _ => false
     }
 }
