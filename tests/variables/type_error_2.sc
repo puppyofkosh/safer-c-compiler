@@ -9,3 +9,4 @@ fn int main(int arg) {
 
     return x;
 }
+

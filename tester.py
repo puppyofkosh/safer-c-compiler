@@ -10,6 +10,7 @@ test_dir = "tests"
 
 errs = []
 subdirs = os.listdir(test_dir)
+tests_passed = 0
 for d in subdirs:
     tests = os.listdir(os.path.join(test_dir, d))
     tests = [t for t in tests if t.endswith(".sc")]
@@ -39,6 +40,8 @@ for d in subdirs:
                 if error_received != error_expected:
                     errs.append("ERROR at {0}: Expected err: {1} but got {2}"
                                 .format(path, error_expected, error_received))
+                else:
+                    tests_passed += 1
         else:
             # Build our program (do it with os.system() because it blocks until
             # the command has finished. If we don't do this, we might try to build
@@ -51,7 +54,10 @@ for d in subdirs:
             if expected_output != output[-1]:
                 errs.append("ERROR at {0}: Expected {1}. Got {2}"
                             .format(path, expected_output, output[-1]))
+            else:
+                tests_passed += 1
 
+print "{0} passed".format(tests_passed)
 print "There were {0} errors".format(len(errs))
 for e in errs:
     print e

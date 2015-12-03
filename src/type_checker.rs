@@ -18,7 +18,6 @@ use type_checker_helper::is_pointer_arithmetic;
 
 use std::collections::HashMap;
 
-
 // FIXME:/ TODO:
 // Rename some things "annotate_" rather than get_
 
@@ -198,10 +197,19 @@ impl TypeChecker {
 
                 if expr_t.is_none() {
                     None
-                } else if let Some(VarType::Struct(ref name)) = expr_t {
+                } else if let Some(VarType::Struct(ref struct_name)) = expr_t {
                     // return type of the field
-                    let struct_defn = self.struct_to_definition.get(name).unwrap();
-                    struct_defn.fields.get(field_name).cloned()
+                    let struct_defn = self.struct_to_definition
+                        .get(struct_name)
+                        .expect(&format!("Struct {} unkown!", struct_name));
+
+                    let field_type = struct_defn.fields.get(field_name);
+                    if field_type.is_none() {
+                        self.errors_found.push(
+                            format!("Unkown field {} on struct {}",
+                                    field_name, struct_name));
+                    }
+                    field_type.cloned()
                 } else {
                     self.errors_found.push(format!(
                         "Cannot access field {:?}(type {:?}) of {:?}",
@@ -324,10 +332,29 @@ impl TypeChecker {
         res
     }
 
-    pub fn annotate_types(&mut self, program: &mut Program) -> bool {
-        for struct_defn in &program.structs {
+    // Make sure the structs are all defined in order. This prevents cycles
+    fn check_struct_definitions(&mut self,
+                                structs: &Vec<StructDefinition>) -> bool {
+        for struct_defn in structs {
+            for (field, typ) in struct_defn.fields.iter() {
+                if !self.type_exists(typ) {
+                    let msg = format!("Unkown type {:?} for field {}", typ, field);
+                    self.errors_found.push(msg);
+
+                    return false;
+                }
+            }
+
             self.struct_to_definition.insert(struct_defn.name.clone(),
                                              struct_defn.clone());
+        }
+
+        true
+    }
+
+    pub fn annotate_types(&mut self, program: &mut Program) -> bool {
+        if !self.check_struct_definitions(&program.structs) {
+            return false;
         }
 
         let mut res = true;
@@ -354,6 +381,8 @@ impl TypeChecker {
                                          .first().unwrap().clone());
 
             if !self.annotate_types_block(&mut fun.statements) {
+                // Don't return here, because we should type check the other
+                // functions too.
                 res = false;
             }
 

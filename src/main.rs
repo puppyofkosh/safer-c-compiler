@@ -1,7 +1,4 @@
-// TODO: type checker: Cannot assign
-// struct to struct
 // TODO: change parser so you can do &x.y
-// Be able to assign to fields
 // struct within a struct
 
 mod code_block;

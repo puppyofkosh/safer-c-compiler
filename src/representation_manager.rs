@@ -56,14 +56,14 @@ impl RepresentationManager {
 
     pub fn init(&mut self,
                 struct_definitions: &Vec<StructDefinition>) {
+        // We should never initialize this more than once
+        assert!(self.struct_to_representation.is_empty());
         
         // Build a representation for each struct
-        let mut struct_to_representation = HashMap::new();
         for defn in struct_definitions {
             let r = self.get_struct_representation(defn);
-            struct_to_representation.insert(defn.name.clone(), r);
+            self.struct_to_representation.insert(defn.name.clone(), r);
         }
-        self.struct_to_representation = struct_to_representation;
     }
 
     fn get_type_size(&self,
