@@ -1,3 +1,4 @@
+use assembly::MachineType;
 use assembly::Instruction::*;
 use assembly::Instruction;
 
@@ -6,20 +7,13 @@ use assembly::Operand::*;
 use assembly::RegisterVal;
 use assembly::RegisterVal::*;
 
-
-use ast::VarType;
-
 pub const WORD_SIZE: i32 = 4;
 
-/// Return the byte size of a type
-/// ```
-/// assert_eq!(4, get_type_size(Int))
-/// ```
-pub fn get_type_size(t: &VarType) -> i32 {
-    match *t {
-        VarType::Pointer(_) => WORD_SIZE,
-        VarType::Int => WORD_SIZE,
-        VarType::Char => 1,
+pub fn get_mtype_size(t: MachineType) -> i32 {
+    match t {
+        MachineType::Long => WORD_SIZE,
+        MachineType::Byte => 1,
+        MachineType::Chunk(i) => i
     }
 }
 
@@ -63,19 +57,17 @@ pub fn get_low_byte(o: &RegisterVal) -> RegisterVal {
     }
 }
 
-/// 
+///
 pub fn move_type(from: Operand, to: Operand,
-             typ: &VarType) -> Instruction {
+                 typ: MachineType) -> Instruction {
     if to == from {
         return NOP;
     }
 
 
-    let sz = get_type_size(typ);
-    match sz {
-        WORD_SIZE => Move(from, to),
-        1 => {
-            // the type is char, currently
+    match typ {
+        MachineType::Long => Move(from, to),
+        MachineType::Byte => {
             if let Register(_) = to {
                 // move from unsigned integer to wider unsigned integer
                 OtherTwoArg("movzbl", from, to)
@@ -90,6 +82,6 @@ pub fn move_type(from: Operand, to: Operand,
                 panic!("You cannot move to {:?}", to);
             }
         }
-        _ => panic!("Unsupported type of size {}", sz)
+        MachineType::Chunk(_) => panic!("Use memcpy to move chunks!"),
     }
 }

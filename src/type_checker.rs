@@ -6,7 +6,9 @@ use ast::Program;
 use ast::Statement;
 use ast::VarType::*;
 use ast::VarType;
+use ast::StructDefinition;
 use ast;
+
 use code_block::CodeBlock;
 
 use type_checker_helper;
@@ -24,6 +26,7 @@ use std::collections::HashMap;
 pub struct TypeChecker {
     errors_found: Vec<String>,
     variable_to_type: HashMap<String, VarType>,
+    struct_to_definition: HashMap<String, StructDefinition>,
     blocks: Vec<CodeBlock>,
 
     current_fn: String,
@@ -35,6 +38,7 @@ impl TypeChecker {
         let mut t = TypeChecker {
             errors_found: Vec::new(),
             variable_to_type: HashMap::new(),
+            struct_to_definition: HashMap::new(),
             blocks: Vec::new(),
             function_to_type: HashMap::new(),
             current_fn: "".to_string(),
@@ -47,6 +51,18 @@ impl TypeChecker {
                                       arg_types: vec![Pointer(Box::new(Char))],
                                   });
         t
+    }
+
+    // Is this a legit type? Only non trivial case is when the
+    // type is a struct
+    fn type_exists(&self, typ: &VarType) -> bool {
+        match *typ {
+            Int | Char => true,
+            Pointer(ref t) => self.type_exists(t),
+            Struct(ref struct_name) => {
+                self.struct_to_definition.get(struct_name).is_some()
+            }
+        }
     }
 
     fn check_function_call(&mut self,
@@ -88,6 +104,7 @@ impl TypeChecker {
     }
 
     // If name is a variable of type Pointer(Int), we return Int.
+    // FIXME: Fix this function, it is terrible
     fn get_type_pointed_to_or_report(&mut self, name: &str) -> Option<VarType> {
         let mut is_ptr = false;
         let res = 
@@ -176,6 +193,22 @@ impl TypeChecker {
             Expression::Dereference(ref name) => {
                 self.get_type_pointed_to_or_report(name)
             }
+            Expression::FieldAccess(ref mut expr, ref field_name) => {
+                let expr_t = self.annotate_type(expr);
+
+                if expr_t.is_none() {
+                    None
+                } else if let Some(VarType::Struct(ref name)) = expr_t {
+                    // return type of the field
+                    let struct_defn = self.struct_to_definition.get(name).unwrap();
+                    struct_defn.fields.get(field_name).cloned()
+                } else {
+                    self.errors_found.push(format!(
+                        "Cannot access field {:?}(type {:?}) of {:?}",
+                        field_name, expr_t, expr));
+                    None
+                }
+            }
         };
         expr_node.typ = typ;
         expr_node.typ.clone()
@@ -209,23 +242,40 @@ impl TypeChecker {
                 let expr_type = self.annotate_type(expr);
                 self.annotate_types_block(stmts) && expr_type.is_some()
             }
-            Statement::Let(ref name, ref var_type, ref mut expr) => {
-                let expr_type_opt = self.annotate_type(expr);
-                let mut res = false;
-                if let Some(expr_type) = expr_type_opt.as_ref() {
-                    if type_contains(var_type, &expr_type) {
-                        self.blocks.last_mut().unwrap().declared_variables
-                            .insert(name.clone());
-                        self.variable_to_type.insert(name.clone(), var_type.clone());
-                        res = true
-                    }
+            Statement::Let(ref name, ref var_type, ref mut expr_opt) => {
+                let mut res = true;
+                if !self.type_exists(var_type) {
+                    self.errors_found.push(format!("Type {:?} doesn't exist.",
+                                                   var_type));
+                    res = false;
                 }
 
-                if !res {
-                    self.errors_found.push(
-                        format!("Cant assign type {:?} to var of type {:?}",
-                                expr_type_opt, var_type));
+                if let &mut Some(ref mut expr) = expr_opt {
+                    let expr_type = self.annotate_type(expr);
+                    let is_bad_assignment = expr_type.is_none() ||
+                        !type_contains(var_type,
+                                       expr_type.as_ref().unwrap());
+
+                    if  is_bad_assignment {
+                        self.errors_found.push(
+                            format!("Cant assign type {:?} to var of type {:?}",
+                                    expr_type, var_type));
+                        res = false;
+                    }
+                } else {
+                    // There was no initialization expression, which is fine.
+                    res = true;
                 }
+                
+                if res == true {
+                    self.blocks.last_mut()
+                        .unwrap()
+                        .declared_variables
+                        .insert(name.clone());
+                    self.variable_to_type.insert(name.clone(),
+                                                 var_type.clone());
+                }
+
                 res
             }
             Statement::Assign(ref mut left, ref mut right) => {
@@ -239,9 +289,13 @@ impl TypeChecker {
                     false
                 } else if !left_t.is_some() || !right_t.is_some() {
                     false
-                } else if !type_contains(&left_t.unwrap(), &right_t.unwrap()) {
+                } else if !type_contains(left_t.as_ref().unwrap(),
+                                         right_t.as_ref().unwrap()) {
                     self.errors_found.push(format!("Cannot assign {:?} to {:?}",
                                            right, left));
+                    false
+                } else if let Some(&Struct(_)) = left_t.as_ref() {
+                    self.errors_found.push("Cannot assign to a struct".to_string());
                     false
                 } else {
                     true
@@ -271,8 +325,27 @@ impl TypeChecker {
     }
 
     pub fn annotate_types(&mut self, program: &mut Program) -> bool {
+        for struct_defn in &program.structs {
+            self.struct_to_definition.insert(struct_defn.name.clone(),
+                                             struct_defn.clone());
+        }
+
         let mut res = true;
         for fun in program.functions.iter_mut() {
+            // For now we cannot pass or return structs from functions.
+            for arg_type in &fun.fn_type.arg_types {
+                if let &Struct(_) = arg_type {
+                    self.errors_found.push("Cannot pass structs yet".to_string());
+                    return false;
+                }
+            }
+            if let Struct(_) = fun.fn_type.return_type {
+                self.errors_found.push("Cannot pass structs yet".to_string());
+                return false;
+            }
+            
+            // Add the current function to our table of functions
+            // (note we do this before checking the function body)
             self.function_to_type.insert(fun.name.clone(),
                                          fun.fn_type.clone());
             self.current_fn = fun.name.clone();
@@ -284,7 +357,8 @@ impl TypeChecker {
                 res = false;
             }
 
-            self.variable_to_type.remove(&fun.name);
+            self.variable_to_type.remove(&fun.arg);
+            assert!(self.variable_to_type.is_empty());
         }
 
         res

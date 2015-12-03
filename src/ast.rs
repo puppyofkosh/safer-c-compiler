@@ -11,6 +11,7 @@ pub enum VarType {
     Int,
     Char,
     Pointer(Box<VarType>),
+    Struct(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,8 +42,10 @@ pub enum Expression {
     BinaryOp(BinaryOp, Box<AstExpressionNode>, Box<AstExpressionNode>),
     Call(FunctionCall),
     Reference(String),
-    // FIXME: Should eventually be an expression, not string vv
+    // FIXME: Should eventually be an expression, not string
+    // For now we'll say this is ok though.
     Dereference(String),
+    FieldAccess(Box<AstExpressionNode>, String),
 }
 
 // Part of AST. The "typ" field is set when we go to the type checker/annotator
@@ -67,10 +70,8 @@ pub enum Statement {
     Print(AstExpressionNode),
     If(AstExpressionNode, Vec<Statement>),
     While(AstExpressionNode, Vec<Statement>),
-    Let(String, VarType, AstExpressionNode),
+    Let(String, VarType, Option<AstExpressionNode>),
     Assign(AstExpressionNode, AstExpressionNode),
-    //Assign(String, AstExpressionNode),
-    //AssignToDereference(String, AstExpressionNode),
     Call(FunctionCall),
 }
 
@@ -83,6 +84,7 @@ pub struct Function {
     pub fn_type: FunctionType,
 }
 
+#[derive(Debug, Clone)]
 pub struct StructDefinition {
     pub name: String,
     pub fields: HashMap<String, VarType>,

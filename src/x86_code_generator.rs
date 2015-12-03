@@ -15,6 +15,7 @@ use assembly::Operand;
 use assembly::Operand::*;
 use assembly::RegisterVal::*;
 use assembly::RegisterVal;
+use assembly::MachineType;
 
 use assembly_printer::instruction_list_to_asm;
 
@@ -24,25 +25,34 @@ use code_block::CodeBlock;
 
 use std::collections::HashMap;
 
-use assembly_helper;
-use assembly_helper::get_type_size;
 use assembly_helper::alloc_stack;
 use assembly_helper::free_stack;
+use assembly_helper::get_mtype_size;
 use assembly_helper::register_besides;
+use assembly_helper::move_type;
 use assembly_helper::WORD_SIZE;
+
+use representation_manager::RepresentationManager;
 
 
 #[derive(Clone)]
 struct LocalVariable {
     stack_offset: i32,
+    // We need thisv for pointer dereferencing (need to know size of the thing
+    // to dereference)
     var_type: VarType,
+    
+    // Used mainly for when we have to copy things and
+    // knowing which asm instruction to use
+    machine_type: MachineType,
 }
 
 impl LocalVariable {
-    pub fn new(off: i32, var_type: VarType) -> LocalVariable {
+    pub fn new(off: i32, var_type: VarType, machine_type: MachineType) -> LocalVariable {
         LocalVariable {
             stack_offset: off,
             var_type: var_type,
+            machine_type: machine_type,
         }
     }
 }
@@ -61,7 +71,10 @@ pub struct X86CodeGenerator {
     current_label_num: i32,
 
     instructions: Vec<Instruction>,
+    
+    representation_mgr: RepresentationManager,
 }
+
 
 
 impl X86CodeGenerator {
@@ -77,6 +90,8 @@ impl X86CodeGenerator {
             current_label_num: 0,
 
             instructions: Vec::new(),
+
+            representation_mgr: RepresentationManager::new(),
         }
     }
 
@@ -87,7 +102,7 @@ impl X86CodeGenerator {
             .expect(&format!("Unkown variable {}", varname));
 
         let from_op = Dereference(EBP, var.stack_offset);
-        let instr = assembly_helper::move_type(from_op, reg, &var.var_type);
+        let instr = move_type(from_op, reg, var.machine_type);
         self.instructions.push(instr);
     }
 
@@ -98,11 +113,11 @@ impl X86CodeGenerator {
             .expect(&format!("Unkown variable {}", varname));
 
         let to_operand = Dereference(EBP, var.stack_offset);
-        let instr = assembly_helper::move_type(reg, to_operand, &var.var_type);
+        let instr = move_type(reg, to_operand, var.machine_type);
         self.instructions.push(instr);
     }
 
-    // Return a register and offset to write to assign to this expression
+    // Return a (register, offset) to write to assign to this expression
     // Assumes the expression is "assignable," which the type checker
     // checks.
     // Example:
@@ -118,6 +133,19 @@ impl X86CodeGenerator {
             Expression::Dereference(ref name) => {
                 self.move_var_to_register(name, Register(EBX));
                 (EBX, 0)
+            }
+            Expression::FieldAccess(ref expr, ref field_name) => {
+                let (addr_reg,
+                     struct_off) = self.load_address_of_expr(expr);
+
+                // field_off is the offset of where the field we want is
+                let field_info = self.representation_mgr
+                    .get_field_info(expr.typ.as_ref().unwrap(),
+                                    field_name);
+                // Address of the field is at the offset of the struct,
+                // plus the offset of the field within the struct
+                let total_offset = struct_off + field_info.offset;
+                (addr_reg, total_offset)
             }
             _ => panic!("Cannot assign to this type of expr"),
         }
@@ -141,7 +169,7 @@ impl X86CodeGenerator {
                     let var = self.identifier_to_var
                         .remove(&variable)
                         .unwrap();
-                    self.current_stack_offset += get_type_size(&var.var_type);
+                    self.current_stack_offset += get_mtype_size(var.machine_type);
                 }
                 
                 self.instructions.push(free_stack(self.current_stack_offset -
@@ -208,9 +236,9 @@ impl X86CodeGenerator {
                     .var_type;
 
                 let instr = if let VarType::Pointer(ref t) = *p_typ {
-                    assembly_helper::move_type(Dereference(EAX, 0),
-                                               Register(EAX),
-                                               t)
+                    move_type(Dereference(EAX, 0),
+                              Register(EAX),
+                              self.representation_mgr.get_machine_type(t))
                 } else {
                     panic!("Cannot dereference non pointer")
                 };
@@ -219,6 +247,20 @@ impl X86CodeGenerator {
 
                 self.instructions.push(instr);
                 Register(EAX)
+            }
+            Expression::FieldAccess(ref struct_expr, ref field_name) => {
+                // Load the address of this whole expression
+                let (register, offset) = self.load_address_of_expr(expr_node);
+                let result_reg = Register(EAX);
+                let field_info = self.representation_mgr
+                    .get_field_info(struct_expr.typ.as_ref().unwrap(),
+                                    field_name);
+                                                    
+                let instr = move_type(Dereference(register, offset),
+                                      result_reg.clone(),
+                                      field_info.machine_type);
+                self.instructions.push(instr);
+                result_reg
             }
         }
     }
@@ -294,7 +336,7 @@ impl X86CodeGenerator {
                 self.instructions.push(Compare(IntConstant(0), reg));
                 self.instructions.push(JumpIfNotEqual(label1.to_string()));
             }
-            Statement::Let(ref name, ref var_type, ref expr) => {
+            Statement::Let(ref name, ref var_type, ref expr_opt) => {
                 self.instructions.push(Comment(
                     format!("variable declaration{}",
                             name)));
@@ -302,15 +344,18 @@ impl X86CodeGenerator {
                 if self.identifier_to_var.contains_key(name) {
                     panic!("Variable {} already declared", *name);
                 }
-                let reg = self.evaluate_expression(expr);
 
-                let var_size = get_type_size(var_type);
+                let machine_type = self.representation_mgr.
+                    get_machine_type(var_type);
+
+                let var_size = get_mtype_size(machine_type);
                 self.current_stack_offset -= var_size;
                 
                 self.identifier_to_var.insert(name.clone(),
                                               LocalVariable::new(
                                                   self.current_stack_offset,
-                                                  var_type.clone()));
+                                                  var_type.clone(),
+                                                  machine_type));
                 {
                     let mut current_block = self.blocks.last_mut().unwrap();
                     current_block.declared_variables.insert(name.clone());
@@ -318,7 +363,10 @@ impl X86CodeGenerator {
 
                 // TODO: Allocate all stack space in advance
                 self.instructions.push(alloc_stack(var_size));
-                self.move_value_to_var(reg, name);
+                if let &Some(ref expr) = expr_opt {
+                    let reg = self.evaluate_expression(expr);
+                    self.move_value_to_var(reg, name);
+                }
             }
             Statement::Assign(ref left_expr, ref right_expr) => {
                 // Figure out where we're going to store this
@@ -342,10 +390,12 @@ impl X86CodeGenerator {
                     self.instructions.push(Pop(Register(addr_reg)));
                 }
 
-                let left_type = left_expr.typ.as_ref().unwrap();
-                let instr = assembly_helper::move_type(value_op,
-                                           Dereference(addr_reg, off),
-                                           left_type);
+                let l_type = left_expr.typ.as_ref().unwrap();
+                let machine_type = self.representation_mgr
+                    .get_machine_type(l_type);
+                let instr = move_type(value_op,
+                                      Dereference(addr_reg, off),
+                                      machine_type);
                 self.instructions.push(instr);
             }
             Statement::Call(ref fn_call) => {
@@ -444,11 +494,14 @@ impl X86CodeGenerator {
         };
 
         self.current_function = name.clone();
+
+        // Add the function's parameters as local variables
+        let arg_type = fun.fn_type.arg_types.first().unwrap();
+        let machine_type = self.representation_mgr
+            .get_machine_type(arg_type);
         let var = LocalVariable::new(WORD_SIZE * 2,
-                                     fun.fn_type.arg_types
-                                     .get(0)
-                                     .unwrap()
-                                     .clone());
+                                     arg_type.clone(),
+                                     machine_type);
         self.identifier_to_var.insert(fun.arg.clone(), var);
 
         let mut code = String::new();
@@ -477,6 +530,8 @@ impl X86CodeGenerator {
 impl GeneratesCode for X86CodeGenerator {
 
     fn generate_code(&mut self, prog: &Program) -> String {
+        self.representation_mgr.init(&prog.structs);
+
         let functions = &prog.functions;
         let asm_header = ".section .data\n\
                           decimal_format_str: .asciz \"%d\\n\"\n\

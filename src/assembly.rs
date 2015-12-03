@@ -5,6 +5,13 @@ pub enum RegisterVal {
     ESP, EBP
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum MachineType {
+    Long,
+    Byte,
+    Chunk(i32), // When something is a chunk of memory of arbitrary size
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum Operand {
     Register(RegisterVal),

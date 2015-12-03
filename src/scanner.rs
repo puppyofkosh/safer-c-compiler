@@ -44,6 +44,7 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "}" => Lexeme::EndBlock,
         ";" => Lexeme::EndOfStatement,
         "," => Lexeme::Comma,
+        "." => Lexeme::Dot,
         _ => {
             if token.starts_with("\"") && token.ends_with("\"") {
                 // Keep the double quotes for now

@@ -26,6 +26,7 @@ pub enum Lexeme {
     If,
     While,
     IntConstant(i32),
+    Type(VarType),
     Operator(OperatorType),
     Reference,
     Assign,
@@ -41,6 +42,5 @@ pub enum Lexeme {
     StartBlock, // {
     EndBlock,
     Comma,
-    Type(VarType),
-
+    Dot,
 }
