@@ -81,8 +81,8 @@ fn main() {
     let mut type_checker = type_checker::TypeChecker::new();
     let passed = type_checker.annotate_types(&mut prog);
     if !passed {
-        println!("did not pass type checker!");
-
+        println!("FAILED typechecker");
+        
         for err in type_checker.get_errors() {
             println!("{}", err);
         }
