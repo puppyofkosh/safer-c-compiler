@@ -7,30 +7,7 @@ use assembly::Operand::*;
 use assembly::RegisterVal;
 use assembly::RegisterVal::*;
 
-
-use ast::VarType;
-
 pub const WORD_SIZE: i32 = 4;
-
-// TODO: Remove this function
-pub fn get_type_size(t: &VarType) -> i32 {
-    match *t {
-        VarType::Pointer(_) => WORD_SIZE,
-        VarType::Int => WORD_SIZE,
-        VarType::Char => 1,
-        VarType::Struct(_) => panic!("wth")
-    }
-}
-
-// TODO: Remove this function
-pub fn type_to_machine_type(t: &VarType) -> MachineType {
-    match *t {
-        VarType::Pointer(_) => MachineType::Long,
-        VarType::Int => MachineType::Long,
-        VarType::Char => MachineType::Byte,
-        VarType::Struct(_) => panic!("wth")
-    }
-}
 
 pub fn get_mtype_size(t: MachineType) -> i32 {
     match t {
@@ -98,6 +75,6 @@ pub fn move_type(from: Operand, to: Operand,
                 panic!("You cannot move to {:?}", to);
             }
         }
-        _ => panic!("Unsupported type {:?}", typ)
+        MachineType::Chunk(_) => panic!("Use memcpy to move chunks!"),
     }
 }

@@ -19,7 +19,9 @@ python tester.py
 -functions with multiple args
 -Eliminate "call()" and replace it with just being able to call functions
 -structs
-- short circuit functions
+- short circuit functions/operators
+- parser should maintain context and know what structs are valid
+- should be able to/have to forward declare structs and functions
 
 figure out how to link with crt's _start function
 safety

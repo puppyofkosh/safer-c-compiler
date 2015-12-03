@@ -104,6 +104,7 @@ impl TypeChecker {
     }
 
     // If name is a variable of type Pointer(Int), we return Int.
+    // FIXME: Fix this function, it is terrible
     fn get_type_pointed_to_or_report(&mut self, name: &str) -> Option<VarType> {
         let mut is_ptr = false;
         let res = 
@@ -288,9 +289,13 @@ impl TypeChecker {
                     false
                 } else if !left_t.is_some() || !right_t.is_some() {
                     false
-                } else if !type_contains(&left_t.unwrap(), &right_t.unwrap()) {
+                } else if !type_contains(left_t.as_ref().unwrap(),
+                                         right_t.as_ref().unwrap()) {
                     self.errors_found.push(format!("Cannot assign {:?} to {:?}",
                                            right, left));
+                    false
+                } else if let Some(&Struct(_)) = left_t.as_ref() {
+                    self.errors_found.push("Cannot assign to a struct".to_string());
                     false
                 } else {
                     true

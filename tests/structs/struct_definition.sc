@@ -1,4 +1,4 @@
-// 55
+// 21
 struct MyStruct {
        int x;
        pointer(int) y;
@@ -8,6 +8,11 @@ struct MyStruct {
 fn int main(int arg) {
    let MyStruct s;
 
-   print 55;
+   let int x = 5;
+   let char y = 10;
+
+   x = 11;
+
+   print x + y;
    return 0;
 }

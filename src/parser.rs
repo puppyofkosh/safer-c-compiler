@@ -319,7 +319,7 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
     assert!(!tokens.is_empty());
 
     let return_type = parse_type(tokens);
-    
+  
     let fn_name = expect_identifier(tokens.consume());
     assert_eq!(tokens.consume(), Lexeme::LParen);
     
@@ -375,7 +375,9 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
             assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
             Statement::Call(fn_call)
         },
-        Identifier(_) | Lexeme::Operator(OperatorType::Star) => {
+        Identifier(_) |
+        Lexeme::Operator(OperatorType::Star) |
+        Lexeme::LParen => {
             parse_assignment(tokens)
         }
         _ => panic!("Unexpected lexeme {:?}", token),
