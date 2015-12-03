@@ -11,8 +11,8 @@ fn int main(int arg) {
    let int x = 5;
    let char y = 10;
 
-   x = 11;
+   s.x = 11;
 
-   print x + y;
+   print s.x + y;
    return 0;
 }
