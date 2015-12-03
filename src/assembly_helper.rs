@@ -11,6 +11,10 @@ use ast::VarType;
 
 pub const WORD_SIZE: i32 = 4;
 
+/// Return the byte size of a type
+/// ```
+/// assert_eq!(4, get_type_size(Int))
+/// ```
 pub fn get_type_size(t: &VarType) -> i32 {
     match *t {
         VarType::Pointer(_) => WORD_SIZE,
@@ -19,6 +23,7 @@ pub fn get_type_size(t: &VarType) -> i32 {
     }
 }
 
+/// Generate assembly code for allocating stack
 pub fn alloc_stack(size: i32) -> Instruction {
     assert!(size >= 0);
     if size == 0 {
@@ -28,6 +33,7 @@ pub fn alloc_stack(size: i32) -> Instruction {
              Register(ESP))
 }
 
+/// Generate assembly code for freeing stack
 pub fn free_stack(size: i32) -> Instruction {
     assert!(size >= 0);
     if size == 0 {
@@ -37,6 +43,7 @@ pub fn free_stack(size: i32) -> Instruction {
         Register(ESP))
 }
 
+/// Return the register beside the given register
 pub fn register_besides(r: &RegisterVal) -> RegisterVal {
     match *r {
         EAX | AL => EBX,
@@ -46,6 +53,7 @@ pub fn register_besides(r: &RegisterVal) -> RegisterVal {
     }
 }
 
+/// Return the low bit version of the given register
 pub fn get_low_byte(o: &RegisterVal) -> RegisterVal {
     match *o {
         EAX => AL,
@@ -55,6 +63,7 @@ pub fn get_low_byte(o: &RegisterVal) -> RegisterVal {
     }
 }
 
+/// 
 pub fn move_type(from: Operand, to: Operand,
              typ: &VarType) -> Instruction {
     if to == from {
@@ -66,14 +75,16 @@ pub fn move_type(from: Operand, to: Operand,
     match sz {
         WORD_SIZE => Move(from, to),
         1 => {
+            // the type is char, currently
             if let Register(_) = to {
+                // move from unsigned integer to wider unsigned integer
                 OtherTwoArg("movzbl", from, to)
             } else if let Dereference(_, _) = to {
                 let mut src = from;
                 if let Register(reg) = src {
                     src = Register(get_low_byte(&reg));
                 }
-                
+
                 OtherTwoArg("movb", src, to)
             } else {
                 panic!("You cannot move to {:?}", to);

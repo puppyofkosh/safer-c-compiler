@@ -21,7 +21,7 @@ use std::path::Path;
 
 use code_generator::GeneratesCode;
 
-
+/// Read the source code from the file
 fn read_file(name: &str) -> std::io::Result<String> {
     let mut f = try!(File::open(name));
     let mut s = String::new();
@@ -30,6 +30,7 @@ fn read_file(name: &str) -> std::io::Result<String> {
     Ok(s)
 }
 
+/// Write the code to out/code.s file
 fn write_code(complete_code: &String) {
     let path = Path::new("out/code.s");
     let mut file = match File::create(&path) {
@@ -48,6 +49,7 @@ fn write_code(complete_code: &String) {
     }
 }
 
+/// Starter of the compiler
 fn main() {
     let filename_res = env::args().nth(1);
     if filename_res.is_none() {
@@ -62,22 +64,28 @@ fn main() {
     }
     let program_text = result.unwrap();
 
+    // Scanning
     let mut tokens = scanner::get_tokens(&program_text);
+
+    // Parsing
     let mut prog = parser::parse_program(&mut tokens);
 
+    // Type checking
     let mut type_checker = type_checker::TypeChecker::new();
     let passed = type_checker.annotate_types(&mut prog);
     if !passed {
         println!("did not pass type checker!");
-        
+
         for err in type_checker.get_errors() {
             println!("{}", err);
         }
         return;
     }
 
+    // Generating code
     let mut code_generator = x86_code_generator::X86CodeGenerator::new();
     let codestr = code_generator.generate_code(&prog);
 
+    // Write the code
     write_code(&codestr);
 }

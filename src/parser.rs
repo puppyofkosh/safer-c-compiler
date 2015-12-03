@@ -17,6 +17,7 @@ use token_stream::TokenStream;
 use std::collections::HashMap;
 
 // FIXME: Do we really want to do this?
+/// Convert OperatorType to BinaryOp
 fn optype_to_op(op: &OperatorType) -> BinaryOp {
     match *op {
         OperatorType::Plus => BinaryOp::Plus,
@@ -32,6 +33,7 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
     }
 }
 
+/// Convert lexeme VarType to ast's VarType
 fn lexeme_var_type_to_ast(t: lexeme::VarType) -> ast::VarType {
     match t {
         lexeme::VarType::Int => ast::VarType::Int,
@@ -40,6 +42,7 @@ fn lexeme_var_type_to_ast(t: lexeme::VarType) -> ast::VarType {
     }
 }
 
+///
 fn get_precedence(op: &OperatorType) -> i32 {
     match *op {
         OperatorType::Plus => 0,
@@ -55,6 +58,7 @@ fn get_precedence(op: &OperatorType) -> i32 {
     }
 }
 
+///
 fn expect_identifier(t: Lexeme) -> String {
     if let Lexeme::Identifier(s) = t {
         s
@@ -71,7 +75,7 @@ fn evaluate_bin_op(op: &OperatorType,
     Expression::BinaryOp(optype_to_op(&op),
                          Box::new(AstExpressionNode::new(l)),
                          Box::new(AstExpressionNode::new(r)))
-    
+
 }
 
 // Return true if when the operator * follows this token,
@@ -103,7 +107,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     while !tokens.is_empty() {
         let tok = tokens.consume();
         let tok_copy = tok.clone();
-        
+
         match tok {
             Identifier(name) => output.push(Expression::Variable(name)),
             Lexeme::IntConstant(v) => output.push(Expression::Value(v)),
@@ -151,7 +155,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
             }
             Lexeme::RParen => {
                 // Either the parens are mismatched, or we don't want
-                // this right paren. 
+                // this right paren.
                 if num_left_parens == num_right_parens {
                     tokens.push(tok);
                     break;
@@ -187,7 +191,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
             panic!("Mismatched parens");
         }
     }
-    
+
     let res = output.pop().unwrap();
     assert!(output.is_empty(), "Tokens remaining on the stack! Invalid input");
     res
@@ -257,7 +261,7 @@ fn parse_while(tokens: &mut TokenStream) -> Statement {
 fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Let);
     assert!(!tokens.is_empty());
-    
+
     let var_type = parse_type(tokens);
 
     let name = expect_identifier(tokens.consume());
@@ -303,15 +307,15 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
     assert!(!tokens.is_empty());
 
     let return_type = parse_type(tokens);
-    
+
     let fn_name = expect_identifier(tokens.consume());
     assert_eq!(tokens.consume(), Lexeme::LParen);
-    
+
     let arg_type = parse_type(tokens);
 
     let fn_arg = expect_identifier(tokens.consume());
     assert_eq!(tokens.consume(), Lexeme::RParen);
-    
+
     let statements = parse_block(tokens);
     return Function {name: fn_name,
                      statements: statements,
@@ -334,7 +338,7 @@ fn parse_struct(tokens: &mut TokenStream) -> StructDefinition {
         let field_name = expect_identifier(tokens.consume());
 
         field_to_type.insert(field_name, typ);
-        
+
         assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
     }
     assert_eq!(tokens.consume(), Lexeme::EndBlock);

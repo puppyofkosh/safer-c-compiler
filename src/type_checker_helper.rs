@@ -9,6 +9,7 @@ pub fn type_contains(parent: &VarType, child: &VarType) -> bool {
     parent == child || (*parent == Int && *child == Char)
 }
 
+/// Return true if the type is Pointer
 pub fn is_pointer(typ: &VarType) -> bool {
     if let Pointer(_) = *typ {
         true

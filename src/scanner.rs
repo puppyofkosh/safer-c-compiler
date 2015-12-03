@@ -55,19 +55,19 @@ fn token_to_lexeme(token: &str) -> Lexeme {
             }
 
             else {
-                panic!("Unkown token! {}", token)            
+                panic!("Unkown token! {}", token)
             }
         }
     }
 }
 
 fn pop_until(l: &mut LinkedList<char>, c: char) {
-    while !l.is_empty() {        
+    while !l.is_empty() {
         {
             let first = l.front().unwrap();
             if *first == c {
                 break;
-            }   
+            }
         }
 
         l.pop_front();
@@ -100,7 +100,7 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
             continue;
         }
         let next_char = chars.front().cloned();
-        
+
         // Comment
         if c == '/' && next_char == Some('/') {
             pop_until(&mut chars, '\n');
@@ -129,7 +129,7 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
                 }
             }
             _ => {
-                
+
             }
         };
 
@@ -139,6 +139,8 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
     tokens
 }
 
+/// Our starter for scanner.rs
+/// Convert the source code to a stream of tokens
 pub fn get_tokens(source: &str) -> TokenStream {
     let t = get_token_strings(source);
     TokenStream::new(t)
