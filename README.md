@@ -25,6 +25,7 @@ python tester.py
 - parser should maintain context and know what structs are valid
 - should be able to/have to forward declare structs and functions
 - add "null" which should be of type pointer()
+- add individual chars (should be able to have 'x' be a char)
 
 figure out how to link with crt's _start function
 safety

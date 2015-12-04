@@ -37,8 +37,8 @@ pub fn free_stack(size: i32) -> Instruction {
         Register(ESP))
 }
 
-/// Return the register beside the given register
-pub fn register_besides(r: &RegisterVal) -> RegisterVal {
+/// Return a register beside the given register
+pub fn register_other_than(r: &RegisterVal) -> RegisterVal {
     match *r {
         EAX | AL => EBX,
         EBX | BL => EAX,

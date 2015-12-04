@@ -28,7 +28,7 @@ use std::collections::HashMap;
 use assembly_helper::alloc_stack;
 use assembly_helper::free_stack;
 use assembly_helper::get_mtype_size;
-use assembly_helper::register_besides;
+use assembly_helper::register_other_than;
 use assembly_helper::move_type;
 use assembly_helper::WORD_SIZE;
 
@@ -385,7 +385,7 @@ impl X86CodeGenerator {
                 // storing the expression's value)
                 if addr_reg != EBP {
                     if let Register(reg) = value_op {
-                        addr_reg = register_besides(&reg);
+                        addr_reg = register_other_than(&reg);
                     }
                     self.instructions.push(Pop(Register(addr_reg)));
                 }

@@ -261,20 +261,18 @@ impl TypeChecker {
                 }
 
                 if let &mut Some(ref mut expr) = expr_opt {
-                    let expr_type = self.annotate_type(expr);
-                    let is_bad_assignment = expr_type.is_none() ||
-                        !type_contains(var_type,
-                                       expr_type.as_ref().unwrap());
+                    self.annotate_type(expr);
 
-                    if  is_bad_assignment {
+                    if !type_checker_helper::can_assign_expr_to_type(var_type,
+                                                                     expr) {
                         self.errors_found.push(
-                            format!("Cant assign type {:?} to var of type {:?}",
-                                    expr_type, var_type));
+                            format!("Cant assign expr {:?} of type ({:?}) \
+                                     to var of type {:?}",
+                                    expr.expr, expr.typ, var_type));
                         res = false;
                     }
                 } else {
                     // There was no initialization expression, which is fine.
-                    res = true;
                 }
                 
                 if res == true {
@@ -289,27 +287,16 @@ impl TypeChecker {
                 res
             }
             Statement::Assign(ref mut left, ref mut right) => {
-                let left_t = self.annotate_type(left);
-                let right_t = self.annotate_type(right);
+                self.annotate_type(left);
+                self.annotate_type(right);
+                
+                let res = type_checker_helper::is_assignment_valid(left, right);
 
-                if !type_checker_helper::is_expression_assignable(left) {
-                    let err = format!("Cannot assign to expression {:?}",
-                                      left);
-                    self.errors_found.push(err);
-                    false
-                } else if !left_t.is_some() || !right_t.is_some() {
-                    false
-                } else if !type_contains(left_t.as_ref().unwrap(),
-                                         right_t.as_ref().unwrap()) {
+                if !res {
                     self.errors_found.push(format!("Cannot assign {:?} to {:?}",
-                                           right, left));
-                    false
-                } else if let Some(&Struct(_)) = left_t.as_ref() {
-                    self.errors_found.push("Cannot assign to a struct".to_string());
-                    false
-                } else {
-                    true
+                                                   right, left));
                 }
+                res
             }
             Statement::Call(ref mut call) => {
                 self.check_function_call(call).is_some()

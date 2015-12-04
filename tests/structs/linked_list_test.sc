@@ -8,8 +8,8 @@ struct List {
 fn int sum_list(pointer(List) p) {
     let int s = 0;
     while p != 0 {
-        s = s + p.v;
-        p = p.next;
+        s = s + (*p).v;
+        p = (*p).next;
     }
 
     return s;
@@ -18,17 +18,17 @@ fn int sum_list(pointer(List) p) {
 fn int main(int arg) {
     let List a;
     a.v = 1;
-    a.next = &b;
+    a.next = 0;
 
     let List b;
     b.v = 2;
-    b.next = 0;
+    b.next = &a;
 
     let List c;
     c.v = 3;
-    c.next = 0;
+    c.next = &b;
 
-    print call(sum_list, a);
+    print call(sum_list, &c);
     
     return 0;
 }
