@@ -22,6 +22,7 @@ python tester.py
 - short circuit functions/operators
 - parser should maintain context and know what structs are valid
 - should be able to/have to forward declare structs and functions
+- add "null" which should be of type pointer()
 
 figure out how to link with crt's _start function
 safety

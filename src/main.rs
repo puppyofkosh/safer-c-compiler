@@ -15,6 +15,7 @@ mod type_checker;
 mod type_checker_helper;
 mod x86_code_generator;
 mod representation_manager;
+mod struct_analyzer;
 
 use std::env;
 use std::error::Error;

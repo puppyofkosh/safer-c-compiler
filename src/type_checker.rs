@@ -16,6 +16,8 @@ use type_checker_helper::type_contains;
 use type_checker_helper::is_pointer;
 use type_checker_helper::is_pointer_arithmetic;
 
+use struct_analyzer::StructAnalyzer;
+
 use std::collections::HashMap;
 
 // FIXME:/ TODO:
@@ -332,29 +334,20 @@ impl TypeChecker {
         res
     }
 
-    // Make sure the structs are all defined in order. This prevents cycles
-    fn check_struct_definitions(&mut self,
-                                structs: &Vec<StructDefinition>) -> bool {
+    fn add_structs(&mut self, structs: &Vec<StructDefinition>) {
         for struct_defn in structs {
-            for (field, typ) in struct_defn.fields.iter() {
-                if !self.type_exists(typ) {
-                    let msg = format!("Unkown type {:?} for field {}", typ, field);
-                    self.errors_found.push(msg);
-
-                    return false;
-                }
-            }
-
             self.struct_to_definition.insert(struct_defn.name.clone(),
                                              struct_defn.clone());
         }
-
-        true
     }
 
     pub fn annotate_types(&mut self, program: &mut Program) -> bool {
-        if !self.check_struct_definitions(&program.structs) {
+        let mut struct_analyzer = StructAnalyzer::new();
+        if !struct_analyzer.check_structs(&program.structs) {
+            self.errors_found.extend(struct_analyzer.get_errors());
             return false;
+        } else {
+            self.add_structs(&program.structs);
         }
 
         let mut res = true;
@@ -393,7 +386,7 @@ impl TypeChecker {
         res
     }
 
-    pub fn get_errors(&self) -> Vec<String> {
-        self.errors_found.clone()
+    pub fn get_errors(&self) -> &Vec<String> {
+        &self.errors_found
     }
 }
