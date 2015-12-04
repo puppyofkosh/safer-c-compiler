@@ -16,6 +16,8 @@ python tester.py
 [To do list (stuff we need to do!)]
 -Else statements
 -pointer arithmetic
+-dereference arbitrary expression (eg *(a + f(b)))
+-get address of struct fields (be able to do &(a.b.c))
 -functions with multiple args
 -Eliminate "call()" and replace it with just being able to call functions
 -structs

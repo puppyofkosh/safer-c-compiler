@@ -1,5 +1,4 @@
 // TODO: change parser so you can do &x.y
-// struct within a struct
 
 mod code_block;
 mod assembly;
