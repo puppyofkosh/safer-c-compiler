@@ -29,7 +29,6 @@ pub enum Lexeme {
     Operator(OperatorType),
     Reference,
     Assign,
-    Let,
     Identifier(String),
     StringConstant(String),
     Return,

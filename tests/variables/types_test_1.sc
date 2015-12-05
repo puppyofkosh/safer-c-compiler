@@ -1,8 +1,8 @@
 // 1;
 int main(int arg) {
-   let int x = 53;
-   let char y = 53;
-   let int z = 12345;
+   int x = 53;
+   char y = 53;
+   int z = 12345;
 
    // When comparing x with y, we should only load 1 byte
    // out of where y is stored to get its value. If that doesn't

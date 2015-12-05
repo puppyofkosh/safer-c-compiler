@@ -5,8 +5,8 @@ int func(int a, int b) {
 }
 
 int main(int arg) {
-    let int a = 10;
-    let pointer(int) b = &a;
+    int a = 10;
+    pointer(int) b = &a;
 
     func(a, b);
 

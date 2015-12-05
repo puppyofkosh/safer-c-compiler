@@ -6,12 +6,12 @@ struct A {
 }
 
 int main(int arg) {
-   let A a;
+   A a;
    a.x = 5;
    a.y = 6;
 
 
-   let A b;
+   A b;
 
    // Not allowed.
    b = a;

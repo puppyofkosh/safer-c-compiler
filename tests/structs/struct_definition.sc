@@ -6,10 +6,10 @@ struct MyStruct {
 }
 
 int main(int arg) {
-   let MyStruct s;
+   MyStruct s;
 
-   let int x = 5;
-   let char y = 10;
+   int x = 5;
+   char y = 10;
 
    s.x = 11;
 

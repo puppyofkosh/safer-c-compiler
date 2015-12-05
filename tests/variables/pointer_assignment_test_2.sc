@@ -5,7 +5,7 @@ int setFive(pointer(int) arg) {
 }
 
 int main(int arg) {
-   let int x = 11;
+   int x = 11;
    setFive(&x);
 
    print x;

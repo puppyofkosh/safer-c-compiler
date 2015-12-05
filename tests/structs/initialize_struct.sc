@@ -5,12 +5,12 @@ struct A {
 }
 
 int main(int arg) {
-   let A a;
+   A a;
    a.x = 5;
    a.y = 5;
 
    // not allowed
-   let A b = a;
-   
+   A b = a;
+
    return 0;
 }

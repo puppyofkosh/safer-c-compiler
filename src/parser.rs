@@ -336,7 +336,6 @@ impl Parser {
 
     /// Parse a let statement (declaration with/without assignment)
     fn parse_declaration(&mut self, tokens: &mut TokenStream) -> Statement {
-        assert_eq!(tokens.consume(), Lexeme::Let);
         assert!(!tokens.is_empty());
 
         let var_type = self.parse_type(tokens);
@@ -455,7 +454,9 @@ impl Parser {
             Lexeme::Print => self.parse_print(tokens),
             Lexeme::If => self.parse_if(tokens),
             Lexeme::While => self.parse_while(tokens),
-            Lexeme::Let => self.parse_declaration(tokens),
+            Lexeme::Type(_) => self.parse_declaration(tokens),
+            Lexeme::Identifier(ref struct_name) if self.struct_table.contains(struct_name) =>
+                self.parse_declaration(tokens),
             Lexeme::Identifier(_) if tokens.peek_n(2) == Lexeme::LParen => {
                 let fn_call = self.parse_call(tokens);
                 assert_eq!(tokens.consume(), Lexeme::EndOfStatement);

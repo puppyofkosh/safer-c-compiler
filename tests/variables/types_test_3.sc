@@ -1,8 +1,8 @@
 // 202
 int main(int arg) {
-   let int x = 101;
-   let char y = 255;
-   let int z = 101;
+   int x = 101;
+   char y = 255;
+   int z = 101;
    
    // Make sure that by changing y we don't accidently change x or z
    y = y + 15;

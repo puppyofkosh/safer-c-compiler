@@ -6,15 +6,15 @@ struct A {
 
 
 int main(int arg) {
-    let A a;
+    A a;
 
     a.x = 1;
     a.y = 2;
 
-    let int result = 0;
+    int result = 0;
 
-    let pointer(char) p = &a.x;
-    
+    pointer(char) p = &a.x;
+
     // Test reading from the pointer (1)
     result = result + *p;
 
@@ -28,7 +28,7 @@ int main(int arg) {
     // Now try changing a.x and reading from the pointer (113)
     a.x = 100;
     result = result + *p;
-    
+
     print result;
     return 0;
 }

@@ -10,7 +10,7 @@ struct B {
 }
 
 int main(int arg) {
-    let A a;
+    A a;
 
     return 0;
 }

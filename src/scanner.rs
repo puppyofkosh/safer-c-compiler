@@ -24,7 +24,6 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "while" => Lexeme::While,
         "return" => Lexeme::Return,
         "print" => Lexeme::Print,
-        "let" => Lexeme::Let,
         "struct" => Lexeme::Struct,
         "int" => Lexeme::Type(VarType::Int),
         "char" => Lexeme::Type(VarType::Char),

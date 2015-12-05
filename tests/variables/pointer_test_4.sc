@@ -1,11 +1,11 @@
 // 4;
 int main(int arg) {
-   let char x = 1;
-   let char y = 2;
-   let char z = 3;
-   let char w = 4;
+   char x = 1;
+   char y = 2;
+   char z = 3;
+   char w = 4;
 
-   let pointer(char) p = &w;
+   pointer(char) p = &w;
 
    print *p;
 }

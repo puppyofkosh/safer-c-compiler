@@ -1,7 +1,7 @@
 // 2
 int main(int arg) {
-   let int x = 10;
-   let pointer(int) y = &x;
+   int x = 10;
+   pointer(int) y = &x;
 
    *y = 2;
 

@@ -12,7 +12,7 @@ struct B {
 }
 
 int main(int arg) {
-    let B b;
+    B b;
     b.a.b = &b;
     b.x = 55;
     

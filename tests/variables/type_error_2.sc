@@ -4,7 +4,7 @@ int id_to_int(char a) {
 }
 
 int main(int arg) {
-    let char x = 5;
+    char x = 5;
     x = call(id_to_int, x);
 
     return x;

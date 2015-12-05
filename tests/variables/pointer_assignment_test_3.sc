@@ -1,12 +1,12 @@
 // 6
 // Make sure when doing a pointer deref, we copy the right amount of things
 int main(int arg) {
-   let char x = 1;
-   let char y = 2;
-   let char z = 3;
-   let char w = 4;
+   char x = 1;
+   char y = 2;
+   char z = 3;
+   char w = 4;
 
-   let pointer(char) p = &w;
+   pointer(char) p = &w;
    // Should only change value of w if we did this correctly
    *p = 23;
 

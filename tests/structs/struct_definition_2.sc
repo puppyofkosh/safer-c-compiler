@@ -6,7 +6,7 @@ struct MyStruct {
 }
 
 int main(int arg) {
-   let MyStruct s;
+   MyStruct s;
 
    s.x = 5;
    s.a = 10;

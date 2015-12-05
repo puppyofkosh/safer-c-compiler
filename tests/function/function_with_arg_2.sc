@@ -5,7 +5,7 @@ int fun(int x) {
       return x;
    }
 
-   let int y = 35;
+   int y = 35;
    return (x + y) - 50;
 }
 

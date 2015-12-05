@@ -15,12 +15,12 @@ struct B {
 }
 
 int compute_sum(pointer(B) p) {
-    let int result = (*p).x.x + (*p).x.y + (*p).y.x + (*p).y.y;
+    int result = (*p).x.x + (*p).x.y + (*p).y.x + (*p).y.y;
     return result;
 }
 
 int main(int arg) {
-    let B b;
+    B b;
 
     b.x.x = 10;
     b.x.y = 10;
@@ -28,10 +28,10 @@ int main(int arg) {
     b.y.y = 40;
 
     // 100
-    let int s = compute_sum(&b);
+    int s = compute_sum(&b);
 
     // Now write to b.x.y, and make sure nothing else gets changed
-    let pointer(int) p = &b.x.y;
+    pointer(int) p = &b.x.y;
     *p = *p + 100;
 
     // 300

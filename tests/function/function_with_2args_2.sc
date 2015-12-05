@@ -5,7 +5,7 @@ int subtract(int a, int b) {
 }
 
 int main(int arg) {
-    let int c = subtract(8, 3);
+    int c = subtract(8, 3);
     print c;
     return 0;
 }

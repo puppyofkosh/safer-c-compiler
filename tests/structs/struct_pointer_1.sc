@@ -12,14 +12,14 @@ int set300(pointer(MyStruct) p) {
 }
 
 int main(int arg) {
-   let MyStruct s;
+   MyStruct s;
 
    // We want to make sure these values don't get overwritten when we
    // write to x   
    s.a = 200;
    s.b = 50;
 
-   let pointer(MyStruct) p = &s;
+   pointer(MyStruct) p = &s;
 
    set300(p);
    

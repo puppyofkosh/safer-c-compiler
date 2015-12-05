@@ -1,7 +1,7 @@
 // 5
 int test (int arg)
 {
-        let int v = 5;
+        int v = 5;
         print v;
         return v;
 }

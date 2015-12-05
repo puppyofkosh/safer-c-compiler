@@ -1,6 +1,6 @@
 // 23
 int func(int arg) {
-   let int x = arg + 1;
+   int x = arg + 1;
    print x;
    return x;
 }

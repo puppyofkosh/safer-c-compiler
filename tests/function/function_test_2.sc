@@ -1,9 +1,9 @@
 // 11
 int getValue(int arg) {
-   let int v = 11;
-   let int y = 6;
+   int v = 11;
+   int y = 6;
    if v == y {
-      let int z = 123;
+      int z = 123;
       print z;
       return z;
    }

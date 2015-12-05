@@ -1,6 +1,6 @@
 // 11
 int main(int arg) {
-    let pointer(int) p = alloc_int(1);
+    pointer(int) p = alloc_int(1);
 
     *p = 11;
 
