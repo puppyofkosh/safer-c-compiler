@@ -1,26 +1,26 @@
 # safer-c-compiler
 
-[Dependencies]
+# Dependencies
 For 64-bit Linux, gcc-multilib should be installed.
-You can install it by: sudo apt-get install gcc-multilib
+You can install it by entering: sudo apt-get install gcc-multilib
 
-[How to run]
-cargo run [program.sc]
+# How to run
+cargo run [program.sc] --- this will give the assembly code.s in the folder 'out'
 ./build
 ./a.out
 The output of the program will then show in the terminal.
 
-[How to run the tester]
+# How to run the tester
 python tester.py
 
-[Things we have done]
+# Things we have done
 A bunch of things here...
 -else statements (don't worry about doing else if)
 -functions with multiple args
 -eliminate the stupid "call" keyword (instead of call(function, a), just function(a))
 -be able to get the address of a particular struct field (ex: &x.y)
 
-[To do list (stuff we need to do!)]
+# To do list (stuff we need to do!)
 Stuff we need to do to have a "C" compiler:
 -more tests (test all possible errors, and also write longer/more complicated programs)
 -be able to call malloc() and free(), write(), etc along with other library routines
@@ -37,7 +37,7 @@ Stuff we'd like to have:
 Right now you just do p = a + f(b) and then dereference p
 -function pointers
 -null keyword
--simple optimizer which gets rid of redundant 
+-simple optimizer which gets rid of redundant
 instructions like a push immediately followed by a pop
 -break keyword
 -0 arg functions

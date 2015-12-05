@@ -70,14 +70,14 @@ fn main() {
     let mut tokens = scanner::get_tokens(&program_text);
 
     // Parsing
-    let mut prog = parser::parse_program(&mut tokens);
+    let mut prog = parser::parse(&mut tokens);
 
     // Type checking
     let mut type_checker = type_checker::TypeChecker::new();
     let passed = type_checker.annotate_types(&mut prog);
     if !passed {
         println!("FAILED typechecker");
-        
+
         for err in type_checker.get_errors() {
             println!("{}", err);
         }
