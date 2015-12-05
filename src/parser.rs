@@ -114,13 +114,9 @@ fn parse_factor(tokens: &mut TokenStream) -> Expression {
             Expression::Call(parse_call(tokens))
         }
         Lexeme::Reference => {
-            // next token should be an identifier
-            let identifier = tokens.consume();
-            if let Identifier(name) = identifier {
-                Expression::Reference(name)
-            } else {
-                panic!("Expected token after & to be identifier");
-            }
+            // Next token should be the thing we want to reference
+            let factor = parse_factor(tokens);
+            Expression::Reference(Box::new(AstExpressionNode::new(factor)))
         }
         Lexeme::Operator(OperatorType::Star) => {
             let identifier = tokens.consume();

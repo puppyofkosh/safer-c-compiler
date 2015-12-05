@@ -15,6 +15,7 @@ use type_checker_helper;
 use type_checker_helper::type_contains;
 use type_checker_helper::is_pointer;
 use type_checker_helper::is_pointer_arithmetic;
+use type_checker_helper::expression_has_address;
 
 use struct_analyzer::StructAnalyzer;
 
@@ -183,10 +184,18 @@ impl TypeChecker {
             Expression::Call(ref mut fn_call) => {
                 self.check_function_call(fn_call)
             }
-            Expression::Reference(ref name) => {
-                let var_type_opt = self.get_var_type_or_report(name);
-                if let Some(t) = var_type_opt {
-                    Some(Pointer(Box::new(t.clone())))
+            Expression::Reference(ref mut expr) => {
+                let expr_type = self.annotate_type(expr);
+                if let Some(t) = expr_type {
+                    if expression_has_address(expr) {
+                        Some(Pointer(Box::new(t)))
+                    } else {
+                        self.errors_found.push(format!(
+                            "Cannot reference expression \
+                             {:?} (with type {:?})",
+                            expr, t));
+                        None
+                    }
                 } else {
                     None
                 }

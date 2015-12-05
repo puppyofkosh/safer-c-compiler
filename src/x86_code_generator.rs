@@ -1,5 +1,3 @@
-
-
 use ast::Statement;
 use ast::Expression;
 use ast::AstExpressionNode;
@@ -213,14 +211,12 @@ impl X86CodeGenerator {
                 self.move_var_to_register(name, Register(EAX));
                 Register(EAX)
             }
-            Expression::Reference(ref name) => {
-                let off = self.identifier_to_var
-                    .get(name)
-                    .expect(&format!("Unkown variable {}", name))
-                    .stack_offset;
+            Expression::Reference(ref expr) => {
+                let (reg, offset) = self.load_address_of_expr(expr);
                 self.instructions.push(OtherTwoArg("leal",
-                                                   Dereference(EBP, off),
+                                                   Dereference(reg, offset),
                                                    Register(EAX)));
+
                 Register(EAX)
             }
             Expression::Dereference(ref name) => {

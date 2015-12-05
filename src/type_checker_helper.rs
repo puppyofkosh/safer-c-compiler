@@ -29,7 +29,9 @@ pub fn is_pointer_arithmetic(l: &VarType,
         (type_contains(&Int, &l) && is_pointer(&r));
 }
 
-pub fn is_expression_assignable(expr_node: &AstExpressionNode) -> bool {
+// Return true if the expression represents something that has an address
+// in memory (is an "lvalue")
+pub fn expression_has_address(expr_node: &AstExpressionNode) -> bool {
     match expr_node.expr {
         Expression::Variable(_) => true,
         Expression::Dereference(_) => true,
@@ -73,7 +75,7 @@ pub fn is_assignment_valid(left: &AstExpressionNode,
         return false;
     }
     
-    if !is_expression_assignable(left) {
+    if !expression_has_address(left) {
         return false;
     }
 

@@ -41,7 +41,7 @@ pub enum Expression {
     StringValue(String),
     BinaryOp(BinaryOp, Box<AstExpressionNode>, Box<AstExpressionNode>),
     Call(FunctionCall),
-    Reference(String),
+    Reference(Box<AstExpressionNode>),
     // FIXME: Should eventually be an expression, not string
     // For now we'll say this is ok though.
     Dereference(String),
