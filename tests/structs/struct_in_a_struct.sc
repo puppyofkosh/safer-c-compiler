@@ -28,14 +28,14 @@ fn int main(int arg) {
     b.y.y = 40;
 
     // 100
-    let int s = call(compute_sum, &b);
+    let int s = compute_sum(&b);
 
     // Now write to b.x.y, and make sure nothing else gets changed
     let pointer(int) p = &b.x.y;
     *p = *p + 100;
-    
+
     // 300
-    s = s + call(compute_sum, &b);
+    s = s + compute_sum(&b);
 
     print s;
 

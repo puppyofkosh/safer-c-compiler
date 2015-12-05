@@ -4,12 +4,12 @@ fn int fun(int x) {
       print x;
       return x;
    }
-   
+
    let int y = 35;
    return (x + y) - 50;
 }
 
 fn int main(int arg) {
-   call(fun, 21) ;
+   fun(21);
    return 0;
 }

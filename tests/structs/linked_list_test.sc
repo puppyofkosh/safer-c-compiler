@@ -28,7 +28,7 @@ fn int main(int arg) {
     c.v = 3;
     c.next = &b;
 
-    print call(sum_list, &c);
+    print sum_list(&c);
     
     return 0;
 }

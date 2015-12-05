@@ -25,7 +25,6 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "return" => Lexeme::Return,
         "print" => Lexeme::Print,
         "let" => Lexeme::Let,
-        "call" => Lexeme::Call,
         "fn" => Lexeme::Function,
         "struct" => Lexeme::Struct,
         "int" => Lexeme::Type(VarType::Int),
@@ -173,4 +172,3 @@ pub fn get_tokens(source: &str) -> TokenStream {
     let t = get_token_strings(source);
     TokenStream::new(t)
 }
-

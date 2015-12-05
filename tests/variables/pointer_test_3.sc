@@ -5,6 +5,6 @@ fn int get_val(pointer(int) arg) {
 
 fn int main(int arg) {
    let int x = 2;
-   print call(get_val, &x);
+   print get_val(&x);
    return 0;
 }

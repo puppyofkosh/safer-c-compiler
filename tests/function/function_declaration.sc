@@ -8,6 +8,6 @@ fn int test (int arg)
 
 fn int main (int arg)
 {
-        call(test, 0) ;
+        test(0);
         return 0;
 }

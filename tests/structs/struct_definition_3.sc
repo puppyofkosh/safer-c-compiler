@@ -24,7 +24,7 @@ fn int main(int arg) {
         let int space3;
     }
 
-    print call(compute_sum, &s);
+    print compute_sum(&s);
 
     return 0;
 }

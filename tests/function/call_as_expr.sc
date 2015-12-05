@@ -4,5 +4,5 @@ fn int f(int arg) {
 }
 
 fn int main(int arg) {
-   print call(f, 123) ;
+   print f(123);
 }

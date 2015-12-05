@@ -7,8 +7,8 @@ fn int func(int a, int b) {
 fn int main(int arg) {
     let int a = 10;
     let pointer(int) b = &a;
-    
-    call(func, a, b);
-    
+
+    func(a, b);
+
     return 0;
 }

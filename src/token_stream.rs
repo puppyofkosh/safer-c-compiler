@@ -22,6 +22,11 @@ impl TokenStream {
         self.token_list.front().expect("no more tokens!").clone()
     }
 
+    /// Peek the nth token of the stack
+    pub fn peek_n(&self, n: i32) -> Lexeme {
+        self.token_list.iter().nth((n as usize) - 1).expect("no more tokens!").clone() 
+    }
+
     /// Push a lexeme onto the stack
     pub fn push(&mut self, tok: Lexeme) {
         self.token_list.push_front(tok);

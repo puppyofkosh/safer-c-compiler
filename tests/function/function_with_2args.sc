@@ -6,6 +6,6 @@ fn int func(int arg1, int arg2) {
 }
 
 fn int main(int arg) {
-   call(func, 22, 1333);
+   func(22, 1333);
    return 0;
 }

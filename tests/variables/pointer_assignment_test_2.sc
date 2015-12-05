@@ -6,7 +6,7 @@ fn int setFive(pointer(int) arg) {
 
 fn int main(int arg) {
    let int x = 11;
-   call(setFive, &x);
+   setFive(&x);
 
    print x;
    return 0;

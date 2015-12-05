@@ -5,7 +5,7 @@ fn int subtract(int a, int b) {
 }
 
 fn int main(int arg) {
-    let int c = call(subtract, 8, 3);
+    let int c = subtract(8, 3);
     print c;
     return 0;
 }

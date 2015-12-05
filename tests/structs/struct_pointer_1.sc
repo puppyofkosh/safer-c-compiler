@@ -21,7 +21,7 @@ fn int main(int arg) {
 
    let pointer(MyStruct) p = &s;
 
-   call(set300, p);
+   set300(p);
    
    // At the same time when we write to s.a, we shouldn't overwrite x or b
    s.a = s.a + 50;

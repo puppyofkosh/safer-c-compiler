@@ -13,6 +13,6 @@ fn int getValue(int arg) {
 }
 
 fn int main(int arg) {
-   call(getValue, 0) ;
+   getValue(0);
    return 0;
 }
