@@ -27,6 +27,7 @@ pub enum VarType {
 pub struct FunctionType {
     pub return_type: VarType,
     pub arg_types: Vec<VarType>,
+    pub is_var_args: bool,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

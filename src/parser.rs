@@ -414,6 +414,7 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
                      fn_type: ast::FunctionType {
                          arg_types: arg_types,
                          return_type: return_type,
+                         is_var_args: false,
                      }
     }
 }

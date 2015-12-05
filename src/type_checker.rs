@@ -47,25 +47,34 @@ impl TypeChecker {
             current_fn: "".to_string(),
         };
 
-        // TODO: Varargs functions
         t.function_to_type.insert("printf".to_string(),
                                   FunctionType {
                                       return_type: Int,
                                       arg_types: vec![Pointer(PointerType::Raw,
                                                               Box::new(Char))],
+                                      is_var_args: true,
+                                  });
+        t.function_to_type.insert("fflush".to_string(),
+                                  FunctionType {
+                                      return_type: Int,
+                                      arg_types: vec![Int],
+                                      is_var_args: false
                                   });
         t.function_to_type.insert("alloc_int".to_string(),
                                   FunctionType {
                                       return_type: Pointer(PointerType::Raw,
                                                            Box::new(Int)),
-                                      arg_types: vec![Int]
+                                      arg_types: vec![Int],
+                                      is_var_args: false,
                                   });
         t.function_to_type.insert("free_int".to_string(),
                                   FunctionType {
                                       return_type: Int,
                                       arg_types: vec![Pointer(PointerType::Raw,
-                                                              Box::new(Int))]
+                                                              Box::new(Int))],
+                                      is_var_args: false,
                                   });
+
         t
     }
 
@@ -95,23 +104,34 @@ impl TypeChecker {
         }
         let fn_type = fn_type_opt.unwrap();
 
-        if call.args_exprs.len() != fn_type.arg_types.len() {
-            self.errors_found.push(format!("function call's parameter num doesn't match with
-                                        the definition"));
-            return None
+        let call_len = call.args_exprs.len();
+        let definition_len = fn_type.arg_types.len();
+        if (call_len != definition_len && !fn_type.is_var_args)
+            || call_len < definition_len {
+                self.errors_found.push(format!("function call's parameter \
+                                                num({}) doesn't match with \
+                                                the definition ({})",
+                                               call_len, definition_len));
+                return None
         }
+
         // Make sure the type of the argument makes sense
         for i in 0..call.args_exprs.len() {
             let arg_type_opt = self.annotate_type(call.args_exprs.get_mut(i).unwrap());
             if arg_type_opt.is_none() { return None; }
             let arg_type = arg_type_opt.unwrap();
 
-            let param_type = fn_type.arg_types.get(i).unwrap();
-            if !type_contains(param_type, &arg_type) {
-                let err = format!("Expected type {:?} but got type {:?}",
-                                param_type, arg_type);
-                self.errors_found.push(err);
-                return None;
+            
+            if i < definition_len {
+                let param_type = fn_type.arg_types.get(i).unwrap();
+                if !type_contains(param_type, &arg_type) {
+                    let err = format!("Expected type {:?} but got type {:?}",
+                                      param_type, arg_type);
+                    self.errors_found.push(err);
+                    return None;
+                }
+            } else {
+                assert_eq!(fn_type.is_var_args, true);
             }
         }
 
