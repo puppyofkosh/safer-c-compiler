@@ -51,10 +51,9 @@ for d in subdirs:
             # Run it with no buffering on stdout (so we get whatever it prints)
             output = get_program_output("./a.out")
 
-            if len(output) == 0 or expected_output != output[-1]:
-                actual_output = output[-1] if len(output) > 0 else None
+            if expected_output != output[-1]:
                 errs.append("ERROR at {0}: Expected {1}. Got {2}"
-                            .format(path, expected_output, actual_output))
+                            .format(path, expected_output, output[-1]))
             else:
                 tests_passed += 1
 

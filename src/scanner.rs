@@ -30,7 +30,6 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "int" => Lexeme::Type(VarType::Int),
         "char" => Lexeme::Type(VarType::Char),
         "pointer" => Lexeme::Type(VarType::Pointer),
-        "owned_pointer" => Lexeme::Type(VarType::OwnedPointer),
         "&" => Lexeme::Reference,
         "=" => Lexeme::Assign,
         "==" => Lexeme::Operator(OperatorType::CompareEqual),

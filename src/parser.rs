@@ -1,6 +1,5 @@
 use ast;
 use ast::AstExpressionNode;
-use ast::PointerType;
 use ast::FunctionCall;
 use ast::StructDefinition;
 use ast::Statement;
@@ -43,16 +42,7 @@ fn lexeme_var_type_to_ast(t: lexeme::VarType) -> ast::VarType {
     match t {
         lexeme::VarType::Int => ast::VarType::Int,
         lexeme::VarType::Char => ast::VarType::Char,
-        lexeme::VarType::Pointer | lexeme::VarType::OwnedPointer =>
-            panic!("Use parse_type function!")
-    }
-}
-
-fn lexeme_pointer_type_to_ast(t: lexeme::VarType) -> ast::PointerType {
-    match t {
-        lexeme::VarType::Pointer => ast::PointerType::Raw,
-        lexeme::VarType::OwnedPointer => ast::PointerType::Owned,
-        _ => panic!("{:?} isn't a pointer type", t),
+        lexeme::VarType::Pointer => panic!("Use parse_type function!")
     }
 }
 
@@ -269,10 +259,9 @@ fn parse_expression(tokens: &mut TokenStream) -> AstExpressionNode {
 fn parse_type(tokens: &mut TokenStream) -> ast::VarType {
     let tok = tokens.consume();
     if let Lexeme::Type(t) = tok {
-        if t == lexeme::VarType::Pointer || t == lexeme::VarType::OwnedPointer {
+        if t == lexeme::VarType::Pointer {
             assert_eq!(tokens.consume(), Lexeme::LParen);
-            let res = ast::VarType::Pointer(lexeme_pointer_type_to_ast(t),
-                                            Box::new(parse_type(tokens)));
+            let res = ast::VarType::Pointer(Box::new(parse_type(tokens)));
             assert_eq!(tokens.consume(), Lexeme::RParen);
             return res;
         } else {

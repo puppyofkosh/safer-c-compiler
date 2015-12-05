@@ -42,7 +42,7 @@ impl StructAnalyzer {
     fn is_type_declared(&self, t: &VarType) -> bool {
         match *t {
             VarType::Int | VarType::Char => true,
-            VarType::Pointer(_, ref pointed_type) => 
+            VarType::Pointer(ref pointed_type) => 
                 self.is_type_declared(pointed_type),
             VarType::Struct(ref struct_name) => 
                 self.structs_declared.contains(struct_name),

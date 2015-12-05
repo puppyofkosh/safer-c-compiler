@@ -11,7 +11,7 @@ pub fn type_contains(parent: &VarType, child: &VarType) -> bool {
 
 /// Return true if the type is Pointer
 pub fn is_pointer(typ: &VarType) -> bool {
-    if let Pointer(_, _) = *typ {
+    if let Pointer(_) = *typ {
         true
     } else {
         false
@@ -55,7 +55,7 @@ pub fn can_assign_expr_to_type(left_t: &VarType,
         // Special case: left is a pointer and right is 0
         // it is okay to assign 0 to a pointer
         let mut res = false;
-        if let &Pointer(_, _) = left_t {
+        if let &Pointer(_) = left_t {
             if let &Expression::Value(val) = &right.expr {
                 res = val == 0;
             }

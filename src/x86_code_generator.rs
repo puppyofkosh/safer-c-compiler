@@ -227,7 +227,7 @@ impl X86CodeGenerator {
                     .unwrap()
                     .var_type;
 
-                let instr = if let VarType::Pointer(_, ref t) = *p_typ {
+                let instr = if let VarType::Pointer(ref t) = *p_typ {
                     move_type(Dereference(EAX, 0),
                               Register(EAX),
                               self.representation_mgr.get_machine_type(t))

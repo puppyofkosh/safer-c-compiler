@@ -6,20 +6,11 @@ pub struct FunctionCall {
     pub args_exprs: Vec<AstExpressionNode>,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum PointerType {
-    // just a regular pointer, nothing special about it
-    Raw,
-
-    // Is freed when it goes out of scope, and can be "moved"
-    Owned,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum VarType {
     Int,
     Char,
-    Pointer(PointerType, Box<VarType>),
+    Pointer(Box<VarType>),
     Struct(String),
 }
 
