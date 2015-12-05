@@ -3,7 +3,7 @@
 // This test can expose errors if our compiler mismanages the stack
 // For it to pass, we must allocate the right amount of stack space within a block,
 // and free that same amount when the block is over.
-fn int main(int arg) {
+int main(int arg) {
    let int x = 43;
    let int y = 33;
    let int z = 23;

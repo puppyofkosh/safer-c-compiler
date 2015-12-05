@@ -1,5 +1,5 @@
 // 2
-fn int main (int arg)
+int main (int arg)
 {
     print 0 ;
     if 5 > 3

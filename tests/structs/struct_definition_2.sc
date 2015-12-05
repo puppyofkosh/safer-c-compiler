@@ -5,7 +5,7 @@ struct MyStruct {
        char b;
 }
 
-fn int main(int arg) {
+int main(int arg) {
    let MyStruct s;
 
    s.x = 5;

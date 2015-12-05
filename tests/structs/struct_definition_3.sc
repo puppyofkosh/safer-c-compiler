@@ -4,11 +4,11 @@ struct MyStruct {
     int y;
 }
 
-fn int compute_sum(pointer(MyStruct) p) {
+int compute_sum(pointer(MyStruct) p) {
     return (*p).x + (*p).y;
 }
 
-fn int main(int arg) {
+int main(int arg) {
     // Pad the stack with extra stuff to make sure all
     // the offset computations work right
     let int space;

@@ -21,7 +21,6 @@ pub enum VarType {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Lexeme {
-    Function,
     If,
     Else,
     While,

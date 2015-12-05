@@ -5,7 +5,7 @@ struct A {
        int y;
 }
 
-fn int main(int arg) {
+int main(int arg) {
    let A a;
    a.x = 5;
    a.y = 6;

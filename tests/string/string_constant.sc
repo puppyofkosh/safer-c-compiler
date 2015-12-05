@@ -1,5 +1,5 @@
 // hello world 5
-fn int main(int arg) {
+int main(int arg) {
    let int y = 222;
    let pointer(char) x = "hello world ";
    printf(x);

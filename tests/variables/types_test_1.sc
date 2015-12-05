@@ -1,5 +1,5 @@
 // 1;
-fn int main(int arg) {
+int main(int arg) {
    let int x = 53;
    let char y = 53;
    let int z = 12345;

@@ -5,7 +5,7 @@ struct List {
        pointer(List) next;
 }
 
-fn int sum_list(pointer(List) p) {
+int sum_list(pointer(List) p) {
     let int s = 0;
     while p != 0 {
         s = s + (*p).v;
@@ -15,7 +15,7 @@ fn int sum_list(pointer(List) p) {
     return s;
 }
 
-fn int main(int arg) {
+int main(int arg) {
     let List a;
     a.v = 1;
     a.next = 0;

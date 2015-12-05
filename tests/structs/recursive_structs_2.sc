@@ -11,7 +11,7 @@ struct B {
     int x;       
 }
 
-fn int main(int arg) {
+int main(int arg) {
     let B b;
     b.a.b = &b;
     b.x = 55;

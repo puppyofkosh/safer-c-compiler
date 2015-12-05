@@ -1,5 +1,5 @@
 // 11
-fn int main(int arg) {
+int main(int arg) {
     let pointer(int) p = alloc_int(1);
 
     *p = 11;

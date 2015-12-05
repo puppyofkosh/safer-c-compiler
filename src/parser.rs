@@ -9,7 +9,6 @@ use ast::Function;
 
 use lexeme;
 use lexeme::Lexeme;
-use lexeme::Lexeme::Identifier;
 
 use lexeme::OperatorType;
 use token_stream::TokenStream;
@@ -105,11 +104,11 @@ fn parse_factor(tokens: &mut TokenStream) -> Expression {
 
     let mut factor =
     match tok {
-        Identifier(_) if tokens.peek() == Lexeme::LParen => {
+        Lexeme::Identifier(_) if tokens.peek() == Lexeme::LParen => {
             tokens.push(tok);
             Expression::Call(parse_call(tokens))
         },
-        Identifier(name) => Expression::Variable(name),
+        Lexeme::Identifier(name) => Expression::Variable(name),
         Lexeme::IntConstant(v) => Expression::Value(v),
         Lexeme::StringConstant(s) => Expression::StringValue(s),
         Lexeme::Reference => {
@@ -119,7 +118,7 @@ fn parse_factor(tokens: &mut TokenStream) -> Expression {
         }
         Lexeme::Operator(OperatorType::Star) => {
             let identifier = tokens.consume();
-            if let Identifier(name) = identifier {
+            if let Lexeme::Identifier(name) = identifier {
                 Expression::Dereference(name)
             } else {
                 panic!("Expected token after * to be identifier");
@@ -165,7 +164,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
         let tok = tokens.consume();
 
         match tok {
-            Identifier(_) | Lexeme::IntConstant(_) | Lexeme::StringConstant(_)
+            Lexeme::Identifier(_) | Lexeme::IntConstant(_) | Lexeme::StringConstant(_)
                 | Lexeme::Reference | Lexeme::Operator(OperatorType::Star)
                 if is_expecting_factor => {
                     tokens.push(tok);
@@ -357,7 +356,7 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
 /// Parse a function call statement
 fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
     let tok = tokens.consume();
-    if let Identifier(fn_name) = tok {
+    if let Lexeme::Identifier(fn_name) = tok {
         assert_eq!(tokens.consume(), Lexeme::LParen);
         let mut args_exprs = Vec::new();
         loop {
@@ -375,36 +374,37 @@ fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
 
 /// Parse a function definition
 fn parse_function(tokens: &mut TokenStream) -> Function {
-    assert_eq!(tokens.consume(), Lexeme::Function);
-    assert!(!tokens.is_empty());
+    if let Lexeme::Type(_) = tokens.peek() {
+        let return_type = parse_type(tokens);
 
-    let return_type = parse_type(tokens);
+        let fn_name = expect_identifier(tokens.consume());
+        assert_eq!(tokens.consume(), Lexeme::LParen);
 
-    let fn_name = expect_identifier(tokens.consume());
-    assert_eq!(tokens.consume(), Lexeme::LParen);
+        let mut args = Vec::new();
+        let mut arg_types = Vec::new();
+        loop {
+            let arg_type = parse_type(tokens);
+            arg_types.push(arg_type);
+            let fn_arg = expect_identifier(tokens.consume());
+            args.push(fn_arg);
+            if tokens.peek() == Lexeme::RParen { break; }
+            assert_eq!(tokens.consume(), Lexeme::Comma);
+        }
 
-    let mut args = Vec::new();
-    let mut arg_types = Vec::new();
-    loop {
-        let arg_type = parse_type(tokens);
-        arg_types.push(arg_type);
-        let fn_arg = expect_identifier(tokens.consume());
-        args.push(fn_arg);
-        if tokens.peek() == Lexeme::RParen { break; }
-        assert_eq!(tokens.consume(), Lexeme::Comma);
-    }
+        assert_eq!(tokens.consume(), Lexeme::RParen);
 
-    assert_eq!(tokens.consume(), Lexeme::RParen);
-
-    let statements = parse_block(tokens);
-    return Function {name: fn_name,
-                     statements: statements,
-                     args: args,
-                     fn_type: ast::FunctionType {
-                         arg_types: arg_types,
-                         return_type: return_type,
-                         is_var_args: false,
-                     }
+        let statements = parse_block(tokens);
+        return Function {name: fn_name,
+                         statements: statements,
+                         args: args,
+                         fn_type: ast::FunctionType {
+                             arg_types: arg_types,
+                             return_type: return_type,
+                             is_var_args: false,
+                         }
+        }
+    } else {
+        panic!("The function declaration starts without type");
     }
 }
 
@@ -441,12 +441,12 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
         Lexeme::If => parse_if(tokens),
         Lexeme::While => parse_while(tokens),
         Lexeme::Let => parse_declaration(tokens),
-        Identifier(_) if tokens.peek_n(2) == Lexeme::LParen => {
+        Lexeme::Identifier(_) if tokens.peek_n(2) == Lexeme::LParen => {
             let fn_call = parse_call(tokens);
             assert_eq!(tokens.consume(), Lexeme::EndOfStatement);
             Statement::Call(fn_call)
         },
-        Identifier(_) |
+        Lexeme::Identifier(_) |
         Lexeme::Operator(OperatorType::Star) |
         Lexeme::LParen => {
             parse_assignment(tokens)
@@ -482,7 +482,7 @@ pub fn parse_program(tokens: &mut TokenStream) -> ast::Program {
     while !tokens.is_empty() {
         let t = tokens.peek();
         match t {
-            Lexeme::Function => functions.push(parse_function(tokens)),
+            Lexeme::Type(_) => functions.push(parse_function(tokens)),
             Lexeme::Struct => structs.push(parse_struct(tokens)),
             _ => panic!("Illegal token {:?}", t),
         }

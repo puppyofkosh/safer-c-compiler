@@ -14,12 +14,12 @@ struct B {
     A y;
 }
 
-fn int compute_sum(pointer(B) p) {
+int compute_sum(pointer(B) p) {
     let int result = (*p).x.x + (*p).x.y + (*p).y.x + (*p).y.y;
     return result;
 }
 
-fn int main(int arg) {
+int main(int arg) {
     let B b;
 
     b.x.x = 10;

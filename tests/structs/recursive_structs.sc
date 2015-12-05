@@ -9,7 +9,7 @@ struct B {
        A x;
 }
 
-fn int main(int arg) {
+int main(int arg) {
     let A a;
 
     return 0;

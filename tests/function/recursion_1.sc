@@ -1,5 +1,5 @@
 // 10
-fn int printuptoten(int arg) {
+int printuptoten(int arg) {
    if arg == 10 {
       print arg;
    }
@@ -10,7 +10,7 @@ fn int printuptoten(int arg) {
    return 0;
 }
 
-fn int main(int arg) {
+int main(int arg) {
    printuptoten(1);
    return 0;
 }

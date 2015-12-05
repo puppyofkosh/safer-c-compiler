@@ -1,5 +1,5 @@
 // 2
-fn int main(int arg) {
+int main(int arg) {
    let int x = 10;
    let pointer(int) y = &x;
 

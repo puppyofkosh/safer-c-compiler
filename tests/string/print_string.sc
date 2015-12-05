@@ -1,6 +1,6 @@
 // 10
 // last character is a \n (which is 10 in ascii)
-fn int main(int arg) {
+int main(int arg) {
    let pointer(char) p = "hallo thar\n";
    
    while *p != 0 {

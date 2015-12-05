@@ -5,13 +5,13 @@ struct MyStruct {
        char b;
 }
 
-fn int set300(pointer(MyStruct) p) {
+int set300(pointer(MyStruct) p) {
    (*p).x = 300;
 
    return 0;
 }
 
-fn int main(int arg) {
+int main(int arg) {
    let MyStruct s;
 
    // We want to make sure these values don't get overwritten when we

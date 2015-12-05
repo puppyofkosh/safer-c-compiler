@@ -1,5 +1,5 @@
 // 202
-fn int main(int arg) {
+int main(int arg) {
    let int x = 101;
    let char y = 255;
    let int z = 101;

@@ -1,10 +1,10 @@
 // ERROR typechecker
 
-fn int func(int a, int b) {
+int func(int a, int b) {
     return 0;
 }
 
-fn int main(int arg) {
+int main(int arg) {
     let int a = 10;
     let pointer(int) b = &a;
 
