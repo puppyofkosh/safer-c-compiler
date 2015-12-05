@@ -16,8 +16,12 @@ use token_stream::TokenStream;
 
 use std::collections::HashMap;
 
-// FIXME: Do we really want to do this?
+
 /// Convert OperatorType to BinaryOp
+/// OperatorType is for lexeme while BinaryOp is for ast
+/// ```
+/// optype_to_op(OperatorType::Plus) = BinaryOp::Plus
+/// ```
 fn optype_to_op(op: &OperatorType) -> BinaryOp {
     match *op {
         OperatorType::Plus => BinaryOp::Plus,
@@ -42,7 +46,10 @@ fn lexeme_var_type_to_ast(t: lexeme::VarType) -> ast::VarType {
     }
 }
 
-///
+/// Return the precedence of the OperatorType
+/// ```
+/// get_precedence(OperatorType::Plus) = 0
+/// ```
 fn get_precedence(op: &OperatorType) -> i32 {
     match *op {
         OperatorType::Plus => 0,
@@ -58,7 +65,10 @@ fn get_precedence(op: &OperatorType) -> i32 {
     }
 }
 
-///
+/// Check if the input is a identifier and return the 'name' (string) of the identifier
+/// ```
+/// expect_identifier(Lexeme::identifier("foo")) = "foo"
+/// ```
 fn expect_identifier(t: Lexeme) -> String {
     if let Lexeme::Identifier(s) = t {
         s
@@ -67,6 +77,10 @@ fn expect_identifier(t: Lexeme) -> String {
     }
 }
 
+/// Helper methods for two-stack algorithm:
+/// pop two stuff from the stack and evaluate
+/// them with the current operator
+/// Return an expression which is a binary operation
 fn evaluate_bin_op(op: &OperatorType,
                    current_stack: &mut Vec<Expression>)
                    -> Expression {
@@ -206,6 +220,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     res
 }
 
+/// Parse a expression using two-stack algorithm
 fn parse_expression(tokens: &mut TokenStream) -> AstExpressionNode {
     let expr = two_stack_algo(tokens);
     AstExpressionNode::new(expr)
@@ -229,6 +244,7 @@ fn parse_type(tokens: &mut TokenStream) -> ast::VarType {
     }
 }
 
+/// Parse a return statement
 fn parse_return(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Return);
     assert!(!tokens.is_empty());
@@ -238,7 +254,7 @@ fn parse_return(tokens: &mut TokenStream) -> Statement {
     return Statement::Return(expr);
 }
 
-
+/// Parse a print statement
 fn parse_print(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Print);
     assert!(!tokens.is_empty());
@@ -248,17 +264,23 @@ fn parse_print(tokens: &mut TokenStream) -> Statement {
     out
 }
 
-
+/// Parse a if statement
 fn parse_if(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::If);
     assert!(!tokens.is_empty());
 
     let condition = parse_expression(tokens);
     let block = parse_block(tokens);
+    let mut else_block = None;
+    if tokens.peek() == Lexeme::Else {
+        assert_eq!(tokens.consume(), Lexeme::Else);
+        else_block = Some(parse_block(tokens));
+    }
 
-    Statement::If(condition, block)
+    Statement::If(condition, block, else_block)
 }
 
+/// Parse a while statement
 fn parse_while(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::While);
     assert!(!tokens.is_empty());
@@ -269,6 +291,7 @@ fn parse_while(tokens: &mut TokenStream) -> Statement {
     Statement::While(condition, block)
 }
 
+/// Parse a let statement (declaration with/without assignment)
 fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     assert_eq!(tokens.consume(), Lexeme::Let);
     assert!(!tokens.is_empty());
@@ -289,6 +312,7 @@ fn parse_declaration(tokens: &mut TokenStream) -> Statement {
     Statement::Let(name, var_type, expr)
 }
 
+/// Parse an assign statement
 fn parse_assignment(tokens: &mut TokenStream) -> Statement{
     // The type checker will make sure that the left expression
     // is "assignable"
@@ -300,6 +324,7 @@ fn parse_assignment(tokens: &mut TokenStream) -> Statement{
     Statement::Assign(left, right)
 }
 
+/// Parse a function call statement
 fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
     assert_eq!(tokens.consume(), Lexeme::Call);
     assert_eq!(tokens.consume(), Lexeme::LParen);
@@ -318,12 +343,13 @@ fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
     }
 }
 
+/// Parse a function definition
 fn parse_function(tokens: &mut TokenStream) -> Function {
     assert_eq!(tokens.consume(), Lexeme::Function);
     assert!(!tokens.is_empty());
 
     let return_type = parse_type(tokens);
-    
+
     let fn_name = expect_identifier(tokens.consume());
     assert_eq!(tokens.consume(), Lexeme::LParen);
 
@@ -343,6 +369,7 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
     }
 }
 
+/// Parse a struct definition
 fn parse_struct(tokens: &mut TokenStream) -> StructDefinition {
     assert_eq!(tokens.consume(), Lexeme::Struct);
     let name = expect_identifier(tokens.consume());
@@ -365,6 +392,7 @@ fn parse_struct(tokens: &mut TokenStream) -> StructDefinition {
     }
 }
 
+/// Parse a statement
 fn parse_statement(tokens: &mut TokenStream) -> Statement {
     let token = tokens.peek();
 
@@ -388,6 +416,7 @@ fn parse_statement(tokens: &mut TokenStream) -> Statement {
     }
 }
 
+/// Parse a block which is simply formed by a bunch of statements
 pub fn parse_block(tokens: &mut TokenStream) -> Vec<Statement> {
     let mut out = Vec::new();
     assert_eq!(tokens.consume(), Lexeme::StartBlock);
@@ -405,6 +434,9 @@ pub fn parse_block(tokens: &mut TokenStream) -> Vec<Statement> {
     panic!("Block did not end with a EndBlock lexeme");
 }
 
+/// The starter of the parser
+/// Parsing the program which is simly formed by a bunch of
+/// function and struct definition
 pub fn parse_program(tokens: &mut TokenStream) -> ast::Program {
     let mut functions = Vec::new();
     let mut structs = Vec::new();

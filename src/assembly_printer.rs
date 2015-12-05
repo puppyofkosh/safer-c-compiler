@@ -6,6 +6,7 @@ use assembly::Operand::*;
 use assembly::RegisterVal::*;
 use assembly::RegisterVal;
 
+/// Convert RegisterVal to string representing the register
 fn reg_to_str(r: &RegisterVal) -> String {
     match *r {
         EAX => "%eax".to_string(),
@@ -19,6 +20,7 @@ fn reg_to_str(r: &RegisterVal) -> String {
     }
 }
 
+/// Convert Operand to string representing the operand
 fn op_to_str(o: &Operand) -> String {
     match *o {
         Register(r) => reg_to_str(&r),
@@ -29,6 +31,7 @@ fn op_to_str(o: &Operand) -> String {
     }
 }
 
+/// Convert a single insruction to assembly
 fn instruction_to_asm(ins: &Instruction) -> String {
     let mut s = match *ins {
         Add(ref a, ref b) => format!("addl {}, {}", op_to_str(a),
@@ -63,6 +66,7 @@ fn instruction_to_asm(ins: &Instruction) -> String {
     s
 }
 
+/// Convert a list of instructions to assembly code
 pub fn instruction_list_to_asm(instructions: &Vec<Instruction>) -> String {
     instructions.iter().fold(String::new(),
                              |acc, ins| acc + &instruction_to_asm(ins))

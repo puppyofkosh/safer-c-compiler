@@ -1,5 +1,4 @@
-// TODO:
-// Make Register a separate operand type and dereference won't need a box
+
 
 use ast::Statement;
 use ast::Expression;
@@ -41,7 +40,7 @@ struct LocalVariable {
     // We need thisv for pointer dereferencing (need to know size of the thing
     // to dereference)
     var_type: VarType,
-    
+
     // Used mainly for when we have to copy things and
     // knowing which asm instruction to use
     machine_type: MachineType,
@@ -71,7 +70,7 @@ pub struct X86CodeGenerator {
     current_label_num: i32,
 
     instructions: Vec<Instruction>,
-    
+
     representation_mgr: RepresentationManager,
 }
 
@@ -160,7 +159,7 @@ impl X86CodeGenerator {
         // Wipe out all of the variables we declared in this block, as
         // we shouldn't able to use them again
         match self.blocks.pop() {
-            None => panic!("Invalid sate. Why is there no current block?"),
+            None => panic!("Invalid state. Why is there no current block?"),
             Some(block) => {
                 assert!(block.declared_variables.len() <
                         i32::max_value() as usize);
@@ -171,7 +170,7 @@ impl X86CodeGenerator {
                         .unwrap();
                     self.current_stack_offset += get_mtype_size(var.machine_type);
                 }
-                
+
                 self.instructions.push(free_stack(self.current_stack_offset -
                                                   previous_offset));
             }
@@ -255,7 +254,7 @@ impl X86CodeGenerator {
                 let field_info = self.representation_mgr
                     .get_field_info(struct_expr.typ.as_ref().unwrap(),
                                     field_name);
-                                                    
+
                 let instr = move_type(Dereference(register, offset),
                                       result_reg.clone(),
                                       field_info.machine_type);
@@ -308,7 +307,7 @@ impl X86CodeGenerator {
                 instr.push(Instruction::Other("call fflush".to_string()));
                 instr.push(free_stack(WORD_SIZE));
             }
-            Statement::If(ref expr, ref statements) => {
+            Statement::If(ref expr, ref statements, ref else_statements_opt) => {
                 let reg = self.evaluate_expression(&expr);
 
                 let label = format!("L{}", self.label_num);
@@ -317,10 +316,24 @@ impl X86CodeGenerator {
                 // Jump PAST the "then statement" if the expression is false
                 self.instructions.push(JumpIfEqual(label.to_string()));
 
+                self.instructions.push(Comment("The start of if block".to_string()));
                 self.evaluate_block(statements);
 
+                if else_statements_opt.is_some() {
+                    self.instructions.push(Comment("The end of if block, skipping the else block".to_string()));
+                    let label = format!("L{}", self.label_num);
+                    self.instructions.push(Jump(label.to_string()));
+                }
                 // print the label to jump to if the expr is false
                 self.instructions.push(Instruction::Label(label.to_string()));
+
+                if let &Some(ref else_statements) = else_statements_opt {
+                    self.instructions.push(Comment("The start of else block".to_string()));
+                    self.evaluate_block(else_statements);
+                    let label = format!("L{}", self.label_num);
+                    self.label_num += 1;
+                    self.instructions.push(Instruction::Label(label.to_string()));
+                }
             }
             Statement::While(ref expr, ref statement) => {
                 let label1 = format!("L{}", self.label_num);
@@ -350,7 +363,7 @@ impl X86CodeGenerator {
 
                 let var_size = get_mtype_size(machine_type);
                 self.current_stack_offset -= var_size;
-                
+
                 self.identifier_to_var.insert(name.clone(),
                                               LocalVariable::new(
                                                   self.current_stack_offset,
@@ -375,11 +388,11 @@ impl X86CodeGenerator {
                 if addr_reg != EBP {
                     self.instructions.push(Push(Register(addr_reg)));
                 }
-                
+
                 // Evaluate the right hand expression. This means
                 // addr_reg now contains junk if its not EBP
                 let value_op = self.evaluate_expression(right_expr);
-                
+
                 // Put the address we may have saved back into a register
                 // (We can put it in any register besides the register
                 // storing the expression's value)
@@ -401,7 +414,7 @@ impl X86CodeGenerator {
             Statement::Call(ref fn_call) => {
                 let reg = self.evaluate_expression(&fn_call.arg_expr);
                 self.instructions.push(Push(reg));
-                
+
                 self.instructions.push(Call(fn_call.name.clone()));
                 self.instructions.push(free_stack(WORD_SIZE));
             }
@@ -419,14 +432,14 @@ impl X86CodeGenerator {
         // Save the value that we computed in case evaluating
         // the right side overwrites this register
         self.instructions.push(Push(left_register));
-        
+
         let right_register = self.evaluate_expression(r_node);
 
         // For now we use Register(EAX) for everything
         if right_register != Register(EAX) {
             self.instructions.push(Move(right_register, Register(EAX)));
         }
- 
+
         // put the value of the left expression into Register(EBX)
         self.instructions.push(Pop(Register(EBX)));
 
@@ -471,7 +484,7 @@ impl X86CodeGenerator {
                 instr.push(Compare(Register(EAX), Register(EBX)));
                 instr.push(Other("setle %al".to_string()));
                 instr.push(Other("movzbl %al, %eax".to_string()));
-                
+
             }
             BinaryOp::CompareNotEqual => {
                 instr.push(Compare(Register(EAX), Register(EBX)));
@@ -483,6 +496,7 @@ impl X86CodeGenerator {
         Register(EAX)
     }
 
+    /// Generate the assembly for a function
     fn generate_code_for_function(&mut self, fun: &Function) -> String {
         assert!(self.identifier_to_var.is_empty());
         assert!(self.blocks.is_empty());
@@ -512,8 +526,11 @@ impl X86CodeGenerator {
             instr.push(Push(Register(EBP)));
             instr.push(Move(Register(ESP), Register(EBP)));
         }
+
         self.evaluate_block(&fun.statements);
+
         if name == "_start" {
+            // If the function is main, then returns 0 at the end
             let expr = AstExpressionNode::new(Expression::Value(0));
             let ret_stmt = Statement::Return(expr);
             self.evaluate_statement(&ret_stmt);
@@ -549,7 +566,6 @@ impl GeneratesCode for X86CodeGenerator {
                                             .string {}\n", label, st));
         }
         complete_code.push_str(&code);
-        // Bunch of file opening crap
 
         complete_code
     }

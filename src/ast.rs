@@ -68,7 +68,7 @@ impl AstExpressionNode {
 pub enum Statement {
     Return(AstExpressionNode),
     Print(AstExpressionNode),
-    If(AstExpressionNode, Vec<Statement>),
+    If(AstExpressionNode, Vec<Statement>, Option<Vec<Statement>>),
     While(AstExpressionNode, Vec<Statement>),
     Let(String, VarType, Option<AstExpressionNode>),
     Assign(AstExpressionNode, AstExpressionNode),

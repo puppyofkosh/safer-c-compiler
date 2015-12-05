@@ -42,3 +42,14 @@ Safety stuff:
 -check for uninitialized variables
 
 figure out how to link with crt's _start function
+safety
+
+[Reserved words]
+return, print
+
+[Supported Operator]
+*,-,+,/
+==, >, <, >=, <=, !=
+
+[Supported Types]
+int, char, pointer

@@ -44,7 +44,7 @@ impl TypeChecker {
             function_to_type: HashMap::new(),
             current_fn: "".to_string(),
         };
-        
+
         // TODO: Varargs functions
         t.function_to_type.insert("printf".to_string(),
                                   FunctionType {
@@ -108,7 +108,7 @@ impl TypeChecker {
     // FIXME: Fix this function, it is terrible
     fn get_type_pointed_to_or_report(&mut self, name: &str) -> Option<VarType> {
         let mut is_ptr = false;
-        let res = 
+        let res =
         {
             let var_type_opt = self.get_var_type_or_report(name);
             if var_type_opt.is_none() {
@@ -120,7 +120,7 @@ impl TypeChecker {
                 None
             }
         };
-        
+
         if !is_ptr {
             self.errors_found
                 .push(format!("Cannot dereference non pointer, {}",
@@ -129,7 +129,7 @@ impl TypeChecker {
         res
     }
 
-    fn get_binary_op_expr_type(&mut self, 
+    fn get_binary_op_expr_type(&mut self,
                                op: &ast::BinaryOp, l: &mut AstExpressionNode,
                                r: &mut AstExpressionNode) -> Option<VarType> {
         let l_type_opt = self.annotate_type(l);
@@ -169,7 +169,7 @@ impl TypeChecker {
     fn annotate_type(&mut self,
                      expr_node: &mut AstExpressionNode) -> Option<VarType> {
         let expr = &mut expr_node.expr;
-        let typ = 
+        let typ =
         match *expr {
             Expression::Value(v) if v >= 0 && v < 256 => Some(Char),
             Expression::Value(_) => Some(Int),
@@ -244,9 +244,14 @@ impl TypeChecker {
                 }
                 res
             }
-            Statement::If(ref mut expr, ref mut stmts) => {
+            Statement::If(ref mut expr, ref mut stmts, ref mut else_opt) => {
                 let expr_type = self.annotate_type(expr);
-                self.annotate_types_block(stmts) && expr_type.is_some()
+                if let &mut Some(ref mut else_stmts) = else_opt {
+                    // TODO: add else checker
+                    self.annotate_types_block(else_stmts) && self.annotate_types_block(stmts) && expr_type.is_some()
+                } else {
+                    self.annotate_types_block(stmts) && expr_type.is_some()
+                }
             }
             Statement::While(ref mut expr, ref mut stmts) => {
                 let expr_type = self.annotate_type(expr);
@@ -274,7 +279,7 @@ impl TypeChecker {
                 } else {
                     // There was no initialization expression, which is fine.
                 }
-                
+
                 if res == true {
                     self.blocks.last_mut()
                         .unwrap()
@@ -350,7 +355,7 @@ impl TypeChecker {
                 self.errors_found.push("Cannot pass structs yet".to_string());
                 return false;
             }
-            
+
             // Add the current function to our table of functions
             // (note we do this before checking the function body)
             self.function_to_type.insert(fun.name.clone(),

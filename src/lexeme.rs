@@ -24,6 +24,7 @@ pub enum Lexeme {
     Call,
     Function,
     If,
+    Else,
     While,
     IntConstant(i32),
     Type(VarType),
