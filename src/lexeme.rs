@@ -17,6 +17,7 @@ pub enum VarType {
     Int,
     Char,
     Pointer,
+    OwnedPointer,
 }
 
 #[derive(PartialEq, Debug, Clone)]

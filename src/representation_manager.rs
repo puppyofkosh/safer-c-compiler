@@ -80,7 +80,7 @@ impl RepresentationManager {
 
     pub fn get_machine_type(&self, typ: &VarType) -> MachineType {
         match *typ {
-            VarType::Pointer(_) => MachineType::Long,
+            VarType::Pointer(_, _) => MachineType::Long,
             VarType::Int => MachineType::Long,
             VarType::Char => MachineType::Byte,
             VarType::Struct(ref name) => {
