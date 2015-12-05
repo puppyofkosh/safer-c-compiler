@@ -54,6 +54,18 @@ impl TypeChecker {
                                       arg_types: vec![Pointer(PointerType::Raw,
                                                               Box::new(Char))],
                                   });
+        t.function_to_type.insert("alloc_int".to_string(),
+                                  FunctionType {
+                                      return_type: Pointer(PointerType::Raw,
+                                                           Box::new(Int)),
+                                      arg_types: vec![Int]
+                                  });
+        t.function_to_type.insert("free_int".to_string(),
+                                  FunctionType {
+                                      return_type: Int,
+                                      arg_types: vec![Pointer(PointerType::Raw,
+                                                              Box::new(Int))]
+                                  });
         t
     }
 

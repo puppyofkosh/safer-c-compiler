@@ -157,23 +157,24 @@ impl X86CodeGenerator {
 
         // Wipe out all of the variables we declared in this block, as
         // we shouldn't able to use them again
-        match self.blocks.pop() {
-            None => panic!("Invalid state. Why is there no current block?"),
-            Some(block) => {
-                assert!(block.declared_variables.len() <
-                        i32::max_value() as usize);
-                let previous_offset = self.current_stack_offset;
-                for variable in block.declared_variables {
-                    let var = self.identifier_to_var
-                        .remove(&variable)
-                        .unwrap();
-                    self.current_stack_offset += get_mtype_size(var.machine_type);
-                }
-
-                self.instructions.push(free_stack(self.current_stack_offset -
-                                                  previous_offset));
-            }
+        let block_opt = self.blocks.pop();
+        if block_opt.is_none() {
+            panic!("Invalid state. Why is there no current block?");
         }
+        let block = block_opt.unwrap();
+        
+        // Pretty reasonable assumption
+        assert!(block.declared_variables.len() < i32::max_value() as usize);
+        let previous_offset = self.current_stack_offset;
+        for variable in block.declared_variables {
+            let var = self.identifier_to_var
+                .remove(&variable)
+                .unwrap();
+            self.current_stack_offset += get_mtype_size(var.machine_type);
+        }
+
+        self.instructions.push(free_stack(self.current_stack_offset -
+                                          previous_offset));
     }
 
     // Generate code to evaluate an expression and return the operand where
@@ -490,7 +491,20 @@ impl X86CodeGenerator {
             self.instructions.push(Push(reg));
         }
 
-        self.instructions.push(Call(fn_call.name.clone()));
+        let fn_name = match &fn_call.name[..] {
+            "alloc_int" => "malloc".to_string(),
+            "free_int" => "free".to_string(),
+            _ => fn_call.name.clone(),
+        };
+        
+        if &fn_call.name == "malloc" {
+            // Multiply argument by four
+            self.instructions.push(Pop(Register(EAX)));
+            self.instructions.push(Multiply(IntConstant(4), Register(EAX)));
+            self.instructions.push(Push(Register(EAX)));
+        }
+
+        self.instructions.push(Call(fn_name));
         self.instructions.push(free_stack(WORD_SIZE * fn_call.args_exprs.len() as i32));
     }
 

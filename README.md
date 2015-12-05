@@ -17,19 +17,19 @@ python tester.py
 A bunch of things here...
 -else statements (don't worry about doing else if)
 -functions with multiple args
+-eliminate the stupid "call" keyword (instead of call(function, a), just function(a))
+-be able to get the address of a particular struct field (ex: &x.y)
 
 [To do list (stuff we need to do!)]
 Stuff we need to do to have a "C" compiler:
 -more tests (test all possible errors, and also write longer/more complicated programs)
--eliminate the stupid "call" keyword (instead of call(function, a), just function(a))
--be able to get the address of a particular struct field (ex: &x.y)
 -be able to call malloc() and free(), write(), etc along with other library routines
 -maybe allow forward declarations
 -array reference (be able to do a[i]). Alternatively implement pointer arithmetic and just do *(a + i)
 -operators && and ||
 -individual characters (example: 'a')
 -error messages from the parser
--0 arg functions
+-change syntax to be C like
 
 Stuff we'd like to have:
 
@@ -40,6 +40,7 @@ Right now you just do p = a + f(b) and then dereference p
 -simple optimizer which gets rid of redundant 
 instructions like a push immediately followed by a pop
 -break keyword
+-0 arg functions
 
 Safety stuff:
 -Check that a pointer isn't assigned something that'll go out of scope before it does
@@ -58,3 +59,8 @@ return, print
 
 [Supported Types]
 int, char, pointer
+
+
+ideas for more tests:
+variable already declared
+function argument type wrong
