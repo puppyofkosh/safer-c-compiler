@@ -25,9 +25,10 @@ Stuff we need to do to have a "C" compiler:
 -array reference (be able to do a[i]). Alternatively implement pointer arithmetic and just do *(a + i)
 -operators && and ||
 -individual characters (example: 'a')
+-error messages from the parser
 
 Stuff we'd like to have:
--error messages from the parser
+
 -dereference arbitrary expression (eg *(a + f(b))).
 Right now you just do p = a + f(b) and then dereference p
 -function pointers

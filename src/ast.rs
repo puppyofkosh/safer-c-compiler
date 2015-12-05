@@ -75,6 +75,7 @@ pub enum Statement {
     Call(FunctionCall),
 }
 
+#[derive(Debug)]
 pub struct Function {
     pub name: String,
     pub statements: Vec<Statement>,
@@ -90,6 +91,7 @@ pub struct StructDefinition {
     pub fields: HashMap<String, VarType>,
 }
 
+#[derive(Debug)]
 pub struct Program {
     pub functions: Vec<Function>,
     pub structs: Vec<StructDefinition>,

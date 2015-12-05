@@ -1,5 +1,3 @@
-// TODO: change parser so you can do &x.y
-
 mod code_block;
 mod assembly;
 mod assembly_helper;

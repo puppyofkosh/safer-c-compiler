@@ -84,27 +84,71 @@ fn expect_identifier(t: Lexeme) -> String {
 fn evaluate_bin_op(op: &OperatorType,
                    current_stack: &mut Vec<Expression>)
                    -> Expression {
-    let r = current_stack.pop().unwrap();
-    let l = current_stack.pop().unwrap();
+    let stack_empty_err = format!(
+        "Stack is empty when it shouldn't be on op {:?}",
+        op);
+    let r = current_stack.pop().expect(&stack_empty_err);
+    let l = current_stack.pop().expect(&stack_empty_err);
     Expression::BinaryOp(optype_to_op(&op),
                          Box::new(AstExpressionNode::new(l)),
                          Box::new(AstExpressionNode::new(r)))
 
 }
 
-// Return true if when the operator * follows this token,
-// it should be treated as a dereference, false if it should not
-fn deref_follows(tok: &Option<Lexeme>) -> bool {
-    match tok.as_ref() {
-        None => true,
-        Some(lex) => {
-            match *lex {
-                Lexeme::Operator(_) => true,
-                Lexeme::LParen => true,
-                _ => false
+// A "factor" is something that isn't a binary/arithmetic operation
+// f(x) is a factor
+// f(x + 2) is also a factor, (it contains a binary operation but isn't part
+// of one
+// x + 5 is not a factor
+fn parse_factor(tokens: &mut TokenStream) -> Expression {
+    let tok = tokens.consume();
+
+    let mut factor = 
+    match tok {
+        Identifier(name) => Expression::Variable(name),
+        Lexeme::IntConstant(v) => Expression::Value(v),
+        Lexeme::StringConstant(s) => Expression::StringValue(s),
+        Lexeme::Call => {
+            // parse_call expects a Lexeme::Call, so put it back in the stream
+            tokens.push(tok);
+            Expression::Call(parse_call(tokens))
+        }
+        Lexeme::Reference => {
+            // next token should be an identifier
+            let identifier = tokens.consume();
+            if let Identifier(name) = identifier {
+                Expression::Reference(name)
+            } else {
+                panic!("Expected token after & to be identifier");
             }
         }
+        Lexeme::Operator(OperatorType::Star) => {
+            let identifier = tokens.consume();
+            if let Identifier(name) = identifier {
+                Expression::Dereference(name)
+            } else {
+                panic!("Expected token after * to be identifier");
+            }
+        }
+        _ => panic!("Unexpected lexeme {:?}. A factor can't contain this",
+                    tok)
+    };
+
+    // Now parse all the field accesses. This is for cases like
+    // (*p).x.y.z
+    let mut next_tok = tokens.consume();
+    while let Lexeme::Dot = next_tok {
+        let field_name = expect_identifier(tokens.consume());
+        let object_factor = AstExpressionNode::new(factor);
+        factor = Expression::FieldAccess(Box::new(object_factor),
+                                         field_name);
+
+        next_tok = tokens.consume();
     }
+    // The last token we took was not a Dot, so we put it back
+    tokens.push(next_tok);
+
+    factor
 }
 
 fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
@@ -117,46 +161,37 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
     let mut num_left_parens = 0;
     let mut num_right_parens = 0;
 
-    let mut prev_tok = None;
+    // We toggle this each time we see a factor
+    // In general you expect to see a factor, then operator, then factor,
+    // We never see operators next to each other, and never see factors next
+    // to each other
+    let mut is_expecting_factor = true;
     while !tokens.is_empty() {
         let tok = tokens.consume();
-        let tok_copy = tok.clone();
 
         match tok {
-            Identifier(name) => output.push(Expression::Variable(name)),
-            Lexeme::IntConstant(v) => output.push(Expression::Value(v)),
-            Lexeme::StringConstant(s) => {
-                output.push(Expression::StringValue(s));
-            },
+            Identifier(_) | Lexeme::IntConstant(_) | Lexeme::StringConstant(_)
+                | Lexeme::Reference | Lexeme::Operator(OperatorType::Star) 
+                | Lexeme::Call if is_expecting_factor => {
+                    tokens.push(tok);
+                    output.push(parse_factor(tokens));
+                    is_expecting_factor = false;
+                }
             Lexeme::Dot => {
                 // We want to access the stuff we just parsed as a struct
+                // An example of this happening is when we do (*p).somefield
+                // TODO: We may want to eliminate this case, and only 
+                // allow p->somefield
+                let prev_expr = AstExpressionNode::new(
+                    output.pop()
+                        .expect("Cannot start an expression with a Dot"));
 
                 let field_name = expect_identifier(tokens.consume());
-                let prev_expr = AstExpressionNode::new(output.pop().unwrap());
                 let new_expr = Expression::FieldAccess(Box::new(prev_expr),
                                                        field_name);
                 output.push(new_expr);
-            }
-            Lexeme::Call => {
-                tokens.push(tok);
-                output.push(Expression::Call(parse_call(tokens)));
-            }
-            Lexeme::Reference => {
-                // next token should be an identifier
-                let identifier = tokens.consume();
-                if let Identifier(name) = identifier {
-                    output.push(Expression::Reference(name));
-                } else {
-                    panic!("Expected token after & to be identifier");
-                }
-            }
-            Lexeme::Operator(OperatorType::Star) if deref_follows(&prev_tok) => {
-                let identifier = tokens.consume();
-                if let Identifier(name) = identifier {
-                    output.push(Expression::Dereference(name));
-                } else {
-                    panic!("Expected token after * to be identifier");
-                }
+
+                is_expecting_factor = false;
             }
             Lexeme::Operator(o1) => {
                 while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
@@ -171,6 +206,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
                     }
                 }
                 operator_stack.push(Lexeme::Operator(o1));
+                is_expecting_factor = true;
             }
             Lexeme::LParen => {
                 operator_stack.push(tok);
@@ -202,7 +238,6 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
                 break;
             },
         }
-        prev_tok = Some(tok_copy);
     }
 
     while let Some(op) = operator_stack.pop() {
@@ -215,7 +250,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
         }
     }
 
-    let res = output.pop().unwrap();
+    let res = output.pop().expect("Error: output is empty!");
     assert!(output.is_empty(), "Tokens remaining on the stack! Invalid input");
     res
 }
