@@ -67,32 +67,40 @@ impl TypeChecker {
         }
     }
 
+    /// Return None if there exists a type error
+    /// Return function's return type otherwise
     fn check_function_call(&mut self,
                            call: &mut FunctionCall) -> Option<VarType> {
-        // Make sure the type of the argument makes sense
-        let arg_type_opt = self.annotate_type(&mut call.arg_expr);
-        if arg_type_opt.is_none() {
-            return None;
-        }
-        let arg_type = arg_type_opt.unwrap();
 
         // Make sure the function exists
-        let fn_type_opt = self.function_to_type.get(&call.name);
+        let fn_type_opt = self.function_to_type.get(&call.name).cloned();
         if fn_type_opt.is_none() {
-            self.errors_found.push(format!("Unkown function {}",
-                                           call.name));
-            return None
+           self.errors_found.push(format!("Unkown function {}",
+                                          call.name));
+           return None
         }
         let fn_type = fn_type_opt.unwrap();
 
-        // Make sure the type of the argument matches the type we expect
-        let param_type = fn_type.arg_types.first().unwrap();
-        if !type_contains(param_type, &arg_type) {
-            let err = format!("Expected type {:?} but got type {:?}",
-                              param_type, arg_type);
-            self.errors_found.push(err);
-            return None;
+        if call.args_exprs.len() != fn_type.arg_types.len() {
+            self.errors_found.push(format!("function call's parameter num doesn't match with
+                                        the definition"));
+            return None
         }
+        // Make sure the type of the argument makes sense
+        for i in 0..call.args_exprs.len() {
+            let arg_type_opt = self.annotate_type(call.args_exprs.get_mut(i).unwrap());
+            if arg_type_opt.is_none() { return None; }
+            let arg_type = arg_type_opt.unwrap();
+
+            let param_type = fn_type.arg_types.get(i).unwrap();
+            if !type_contains(param_type, &arg_type) {
+                let err = format!("Expected type {:?} but got type {:?}",
+                                param_type, arg_type);
+                self.errors_found.push(err);
+                return None;
+            }
+        }
+
 
         Some(fn_type.return_type.clone())
     }
@@ -167,6 +175,7 @@ impl TypeChecker {
             }
     }
 
+    /// Set the type of expression node
     fn annotate_type(&mut self,
                      expr_node: &mut AstExpressionNode) -> Option<VarType> {
         let expr = &mut expr_node.expr;
@@ -303,7 +312,7 @@ impl TypeChecker {
             Statement::Assign(ref mut left, ref mut right) => {
                 self.annotate_type(left);
                 self.annotate_type(right);
-                
+
                 let res = type_checker_helper::is_assignment_valid(left, right);
 
                 if !res {
@@ -370,9 +379,10 @@ impl TypeChecker {
             self.function_to_type.insert(fun.name.clone(),
                                          fun.fn_type.clone());
             self.current_fn = fun.name.clone();
-            self.variable_to_type.insert(fun.arg.clone(),
-                                         fun.fn_type.arg_types
-                                         .first().unwrap().clone());
+            for i in 0..fun.args.len() {
+                self.variable_to_type.insert(fun.args.get(i).unwrap().clone(),
+                                             fun.fn_type.arg_types.get(i).unwrap().clone());
+            }
 
             if !self.annotate_types_block(&mut fun.statements) {
                 // Don't return here, because we should type check the other
@@ -380,7 +390,9 @@ impl TypeChecker {
                 res = false;
             }
 
-            self.variable_to_type.remove(&fun.arg);
+            for arg in &fun.args {
+                self.variable_to_type.remove(arg);
+            }
             assert!(self.variable_to_type.is_empty());
         }
 

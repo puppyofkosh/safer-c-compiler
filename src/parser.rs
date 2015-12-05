@@ -103,7 +103,7 @@ fn evaluate_bin_op(op: &OperatorType,
 fn parse_factor(tokens: &mut TokenStream) -> Expression {
     let tok = tokens.consume();
 
-    let mut factor = 
+    let mut factor =
     match tok {
         Identifier(name) => Expression::Variable(name),
         Lexeme::IntConstant(v) => Expression::Value(v),
@@ -167,7 +167,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
 
         match tok {
             Identifier(_) | Lexeme::IntConstant(_) | Lexeme::StringConstant(_)
-                | Lexeme::Reference | Lexeme::Operator(OperatorType::Star) 
+                | Lexeme::Reference | Lexeme::Operator(OperatorType::Star)
                 | Lexeme::Call if is_expecting_factor => {
                     tokens.push(tok);
                     output.push(parse_factor(tokens));
@@ -176,7 +176,7 @@ fn two_stack_algo(tokens: &mut TokenStream) -> Expression {
             Lexeme::Dot => {
                 // We want to access the stuff we just parsed as a struct
                 // An example of this happening is when we do (*p).somefield
-                // TODO: We may want to eliminate this case, and only 
+                // TODO: We may want to eliminate this case, and only
                 // allow p->somefield
                 let prev_expr = AstExpressionNode::new(
                     output.pop()
@@ -364,11 +364,17 @@ fn parse_call(tokens: &mut TokenStream) -> FunctionCall {
     let tok = tokens.consume();
     if let Identifier(fn_name) = tok {
         assert_eq!(tokens.consume(), Lexeme::Comma);
-        let arg_expr = parse_expression(tokens);
+        let mut args_exprs = Vec::new();
+        loop {
+            let arg_expr = parse_expression(tokens);
+            args_exprs.push(arg_expr);
+            if tokens.peek() == Lexeme::RParen { break };
+            assert_eq!(tokens.consume(), Lexeme::Comma);
+        }
         assert_eq!(tokens.consume(), Lexeme::RParen);
 
         FunctionCall {name:fn_name,
-                      arg_expr: Box::new(arg_expr)}
+                      args_exprs: args_exprs}
     } else {
         panic!("Expected a function name");
     }
@@ -384,17 +390,25 @@ fn parse_function(tokens: &mut TokenStream) -> Function {
     let fn_name = expect_identifier(tokens.consume());
     assert_eq!(tokens.consume(), Lexeme::LParen);
 
-    let arg_type = parse_type(tokens);
+    let mut args = Vec::new();
+    let mut arg_types = Vec::new();
+    loop {
+        let arg_type = parse_type(tokens);
+        arg_types.push(arg_type);
+        let fn_arg = expect_identifier(tokens.consume());
+        args.push(fn_arg);
+        if tokens.peek() == Lexeme::RParen { break; }
+        assert_eq!(tokens.consume(), Lexeme::Comma);
+    }
 
-    let fn_arg = expect_identifier(tokens.consume());
     assert_eq!(tokens.consume(), Lexeme::RParen);
 
     let statements = parse_block(tokens);
     return Function {name: fn_name,
                      statements: statements,
-                     arg: fn_arg,
+                     args: args,
                      fn_type: ast::FunctionType {
-                         arg_types: vec![arg_type],
+                         arg_types: arg_types,
                          return_type: return_type,
                      }
     }

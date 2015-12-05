@@ -13,12 +13,15 @@ The output of the program will then show in the terminal.
 [How to run the tester]
 python tester.py
 
+[Things we have done]
+A bunch of things here...
+-else statements (don't worry about doing else if)
+
 [To do list (stuff we need to do!)]
 Stuff we need to do to have a "C" compiler:
 -more tests (test all possible errors, and also write longer/more complicated programs)
 -functions with multiple args
 -eliminate the stupid "call" keyword (instead of call(function, a), just function(a))
--else statements (don't worry about doing else if)
 -be able to get the address of a particular struct field (ex: &x.y)
 -be able to call malloc() and free(), write(), etc along with other library routines
 -maybe allow forward declarations

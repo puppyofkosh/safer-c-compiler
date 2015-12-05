@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct FunctionCall {
     pub name: String,
-    pub arg_expr: Box<AstExpressionNode>,
+    pub args_exprs: Vec<AstExpressionNode>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,6 +52,8 @@ pub enum Expression {
 #[derive(Debug)]
 pub struct AstExpressionNode {
     pub expr: Expression,
+    // Before type checking, it's None.
+    // If it passes the type checker, it's guaranteed to be Some.
     pub typ: Option<VarType>,
 }
 
@@ -80,7 +82,7 @@ pub struct Function {
     pub name: String,
     pub statements: Vec<Statement>,
 
-    pub arg: String,
+    pub args: Vec<String>,
 
     pub fn_type: FunctionType,
 }

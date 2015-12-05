@@ -3,6 +3,7 @@ use ast::Expression;
 use ast::AstExpressionNode;
 use ast::BinaryOp;
 use ast::Function;
+use ast::FunctionCall;
 use ast::VarType;
 use ast::Program;
 
@@ -182,12 +183,7 @@ impl X86CodeGenerator {
         let expr = &expr_node.expr;
         match *expr {
             Expression::Call(ref fn_call) => {
-                let reg = self.evaluate_expression(&fn_call.arg_expr);
-
-                self.instructions.push(Push(reg));
-                self.instructions.push(Call(fn_call.name.clone()));
-                self.instructions.push(free_stack(WORD_SIZE));
-
+                self.evaluate_function_call(fn_call);
                 Register(EAX)
             }
             Expression::Value(ref v) => {
@@ -408,11 +404,7 @@ impl X86CodeGenerator {
                 self.instructions.push(instr);
             }
             Statement::Call(ref fn_call) => {
-                let reg = self.evaluate_expression(&fn_call.arg_expr);
-                self.instructions.push(Push(reg));
-
-                self.instructions.push(Call(fn_call.name.clone()));
-                self.instructions.push(free_stack(WORD_SIZE));
+                self.evaluate_function_call(fn_call);
             }
         }
     }
@@ -492,6 +484,16 @@ impl X86CodeGenerator {
         Register(EAX)
     }
 
+    fn evaluate_function_call(&mut self, fn_call: &FunctionCall) {
+        for arg_expr in fn_call.args_exprs.iter().rev() {
+            let reg = self.evaluate_expression(arg_expr);
+            self.instructions.push(Push(reg));
+        }
+
+        self.instructions.push(Call(fn_call.name.clone()));
+        self.instructions.push(free_stack(WORD_SIZE * fn_call.args_exprs.len() as i32));
+    }
+
     /// Generate the assembly for a function
     fn generate_code_for_function(&mut self, fun: &Function) -> String {
         assert!(self.identifier_to_var.is_empty());
@@ -506,13 +508,12 @@ impl X86CodeGenerator {
         self.current_function = name.clone();
 
         // Add the function's parameters as local variables
-        let arg_type = fun.fn_type.arg_types.first().unwrap();
-        let machine_type = self.representation_mgr
-            .get_machine_type(arg_type);
-        let var = LocalVariable::new(WORD_SIZE * 2,
-                                     arg_type.clone(),
-                                     machine_type);
-        self.identifier_to_var.insert(fun.arg.clone(), var);
+        for i in 0..fun.fn_type.arg_types.len() {
+            let arg_type = fun.fn_type.arg_types.get(i).expect("function parameter with no type");
+            let machine_type = self.representation_mgr.get_machine_type(arg_type);
+            let var = LocalVariable::new(WORD_SIZE * (2 + i as i32), arg_type.clone(), machine_type);
+            self.identifier_to_var.insert(fun.args.get(i).unwrap().clone(), var);
+        }
 
         let mut code = String::new();
         self.instructions = Vec::new();
@@ -533,7 +534,9 @@ impl X86CodeGenerator {
         }
 
         // Remove arguments from active identifiers
-        self.identifier_to_var.remove(&fun.arg);
+        for arg in &fun.args {
+            self.identifier_to_var.remove(arg);
+        }
 
         code.push_str(&instruction_list_to_asm(&mut self.instructions));
         code
