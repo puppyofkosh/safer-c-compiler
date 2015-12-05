@@ -26,6 +26,7 @@ Stuff we need to do to have a "C" compiler:
 -operators && and ||
 -individual characters (example: 'a')
 -error messages from the parser
+-0 arg functions
 
 Stuff we'd like to have:
 
