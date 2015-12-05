@@ -52,6 +52,12 @@ impl TypeChecker {
                                       arg_types: vec![Pointer(Box::new(Char))],
                                       is_var_args: true,
                                   });
+        t.function_to_type.insert("scanf".to_string(),
+                                  FunctionType {
+                                      return_type: Int,
+                                      arg_types: vec![Pointer(Box::new(Char))],
+                                      is_var_args: true,
+                                  });
         t.function_to_type.insert("fflush".to_string(),
                                   FunctionType {
                                       return_type: Int,
