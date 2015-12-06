@@ -208,14 +208,19 @@ impl Parser {
                     is_expecting_factor = false;
                 }
                 Lexeme::Operator(o1) => {
-                    while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
-                        if get_precedence(&o1) <= get_precedence(&o2) {
-                            let bin_expr = self.evaluate_bin_op(&o2, &mut output);
-                            output.push(bin_expr);
-                        }
-                        else {
-                            // push it back on the stack
-                            operator_stack.push(Lexeme::Operator(o2));
+                    while let Some(lex) = operator_stack.pop() {
+                        let mut precedence_less_or_eq = false;
+                        if let Lexeme::Operator(o2) = lex {
+                            if get_precedence(&o1) <= get_precedence(&o2) {
+                                let bin_expr = self.evaluate_bin_op(&o2,
+                                                                    &mut output);
+                                output.push(bin_expr);
+                                precedence_less_or_eq = true;
+                            }
+                        } 
+
+                        if !precedence_less_or_eq {
+                            operator_stack.push(lex);
                             break;
                         }
                     }
