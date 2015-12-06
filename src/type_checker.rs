@@ -301,7 +301,20 @@ impl TypeChecker {
                     .unwrap()
                     .return_type;
 
-                expr_type.and_then(|typ| Some(typ == *ret_type)).is_some()
+                let mut res = true;
+                if let Some(expr_t) = expr_type {
+                    if !type_contains(ret_type, &expr_t) {
+                        let msg = format!("Cannot return expr {:?} \
+                                           for function with ret \
+                                           type {:?}", expr_t,
+                                          ret_type);
+                        self.errors_found.push(msg);
+                        res = false;
+                    }
+                } else {
+                    res = false;
+                }
+                res
             }
             Statement::Print(ref mut expr) => {
                 let typ = self.annotate_type(expr);

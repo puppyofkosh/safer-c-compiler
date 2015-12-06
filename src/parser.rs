@@ -409,37 +409,33 @@ impl Parser {
 
     /// Parse a function definition
     fn parse_function(&mut self, tokens: &mut TokenStream) -> Function {
-        if let Lexeme::Type(_) = tokens.peek() {
-            let return_type = self.parse_type(tokens);
+        let return_type = self.parse_type(tokens);
 
-            let fn_name = expect_identifier(tokens.consume());
-            assert_eq!(tokens.consume(), Lexeme::LParen);
+        let fn_name = expect_identifier(tokens.consume());
+        assert_eq!(tokens.consume(), Lexeme::LParen);
 
-            let mut args = Vec::new();
-            let mut arg_types = Vec::new();
-            loop {
-                let arg_type = self.parse_type(tokens);
-                arg_types.push(arg_type);
-                let fn_arg = expect_identifier(tokens.consume());
-                args.push(fn_arg);
-                if tokens.peek() == Lexeme::RParen { break; }
-                assert_eq!(tokens.consume(), Lexeme::Comma);
-            }
+        let mut args = Vec::new();
+        let mut arg_types = Vec::new();
+        loop {
+            let arg_type = self.parse_type(tokens);
+            arg_types.push(arg_type);
+            let fn_arg = expect_identifier(tokens.consume());
+            args.push(fn_arg);
+            if tokens.peek() == Lexeme::RParen { break; }
+            assert_eq!(tokens.consume(), Lexeme::Comma);
+        }
 
-            assert_eq!(tokens.consume(), Lexeme::RParen);
+        assert_eq!(tokens.consume(), Lexeme::RParen);
 
-            let statements = self.parse_block(tokens);
-            return Function {name: fn_name,
-                             statements: statements,
-                             args: args,
-                             fn_type: ast::FunctionType {
-                                 arg_types: arg_types,
-                                 return_type: return_type,
-                                 is_var_args: false,
-                             }
-            }
-        } else {
-            panic!("The function declaration starts without type");
+        let statements = self.parse_block(tokens);
+        return Function {name: fn_name,
+                         statements: statements,
+                         args: args,
+                         fn_type: ast::FunctionType {
+                             arg_types: arg_types,
+                             return_type: return_type,
+                             is_var_args: false,
+                         }
         }
     }
 
@@ -518,7 +514,8 @@ impl Parser {
         while !tokens.is_empty() {
             let t = tokens.peek();
             match t {
-                Lexeme::Type(_) => functions.push(self.parse_function(tokens)),
+                Lexeme::Type(_) | Lexeme::Identifier(_)=>
+                    functions.push(self.parse_function(tokens)),
                 Lexeme::Struct => structs.push(self.parse_struct(tokens)),
                 _ => panic!("Illegal token {:?}", t),
             }

@@ -4,6 +4,13 @@
 For 64-bit Linux, gcc-multilib should be installed.
 You can install it by entering: sudo apt-get install gcc-multilib
 
+If you want to use valgrind on the executables this produces
+and you're on 64 bit you will need to do:
+sudo apt-get install libc6-dbg:i386
+
+(See https://bugs.launchpad.net/ubuntu/+source/eglibc/+bug/881236)
+
+
 # How to run
 cargo run [program.sc] --- this will give the assembly code.s in the folder 'out'
 ./build
@@ -43,6 +50,7 @@ Right now you just do p = a + f(b) and then dereference p
 instructions like a push immediately followed by a pop
 -break keyword
 -0 arg functions
+-negative numbers! Right now we just do x = (0 - n)
 
 Safety stuff:
 -Check that a pointer isn't assigned something that'll go out of scope before it does
@@ -64,11 +72,18 @@ int, char, pointer
 
 
 ideas for more tests:
-variable already declared
-variable already declared in multiple blocks
-function argument type wrong
-mutual recursion
-make other calls to stuff like write()
+
+-call non existent function
+-function argument has meaningless type
+-dereferencing non pointer
+-getting unkown field
+-getting field of some meaningless thing (a function call)
+-wrong return type
+-passing structs to functions
+-returning struct from function
+
+-check type exists
+-pointer division/multiplication weird stuff
 
 # Tricky tests:
 weird_reference_and_dereference.sc

@@ -27,9 +27,12 @@ for d in subdirs:
 
         compiler = "cargo run {0}".format(path)
 
+        compiler_output = get_program_output(compiler)
+
         # Make sure the compiler gives an error
         if expected_output.startswith("ERROR"):
-            output = get_program_output(compiler)
+            output = compiler_output
+            #output = get_program_output(compiler)
             error_lines = [x for x in output if x.startswith('FAILED')]
             if len(error_lines) == 0:
                 errs.append("ERROR at {0}: Expected program to fail, but no"
@@ -46,7 +49,13 @@ for d in subdirs:
             # Build our program (do it with os.system() because it blocks until
             # the command has finished. If we don't do this, we might try to build
             # the output of the previous test.
-            os.system(compiler)
+            #os.system(compiler)
+            error_lines = [x for x in compiler_output if x.startswith('FAILED')]
+            if len(error_lines) > 0:
+                errs.append("ERROR at {0}: Expected {1} but got error {2}".format(
+                    path, expected_output, error_lines[0]))
+                continue
+
             os.system("./build.sh")
             # Run it with no buffering on stdout (so we get whatever it prints)
             output = get_program_output("./a.out")
