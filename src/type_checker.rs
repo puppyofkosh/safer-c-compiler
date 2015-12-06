@@ -89,6 +89,20 @@ impl TypeChecker {
                                       arg_types: vec![Int],
                                       is_var_args: false,
                                   });
+        t.function_to_type.insert("allocate".to_string(),
+                                  FunctionType {
+                                      return_type: Pointer(PointerType::Raw,
+                                                           Box::new(Char)),
+                                      arg_types: vec![Int],
+                                      is_var_args: false,
+                                  });
+        t.function_to_type.insert("free".to_string(),
+                                  FunctionType {
+                                      return_type: Int,
+                                      arg_types: vec![Pointer(PointerType::Raw,
+                                                              Box::new(Char))],
+                                      is_var_args: false,
+                                  });
 
         t
     }
@@ -136,10 +150,11 @@ impl TypeChecker {
             if arg_type_opt.is_none() { return None; }
             let arg_type = arg_type_opt.unwrap();
 
-            
+            // Var args functions may have more arguments than the definition
             if i < definition_len {
                 let param_type = fn_type.arg_types.get(i).unwrap();
-                if !type_contains(param_type, &arg_type) {
+                // HACK: this is how we let free get called with any type
+                if !type_contains(param_type, &arg_type) && call.name != "free" {
                     let err = format!("Expected type {:?} but got type {:?}",
                                       param_type, arg_type);
                     self.errors_found.push(err);

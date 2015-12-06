@@ -495,6 +495,8 @@ impl X86CodeGenerator {
 
         let fn_name = match &fn_call.name[..] {
             "alloc_int" | "alloc_owned_int" => "malloc".to_string(),
+            "allocate" => "malloc".to_string(), // allocate exact number of bytes given
+            "free" => "free".to_string(),
             "free_int" => "free".to_string(),
             _ => fn_call.name.clone(),
         };

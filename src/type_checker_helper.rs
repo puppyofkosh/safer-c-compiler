@@ -49,7 +49,14 @@ pub fn can_assign_expr_to_type(left_t: &VarType,
     if let &Struct(_) = left_t {
         // Can't assign structs to one another
         return false;
-    } 
+    }
+
+    // if the thing on the right is a call to malloc, we allow it
+    if let Expression::Call(ref fn_call) = right.expr {
+        if fn_call.name == "allocate" && is_pointer(left_t) {
+            return true;
+        }
+    }
     
     if !type_contains(left_t, right.typ.as_ref().unwrap()) {
         // Special case: left is a pointer and right is 0
