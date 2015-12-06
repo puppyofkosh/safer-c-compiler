@@ -121,6 +121,7 @@ impl Parser {
             },
             Lexeme::Identifier(name) => Expression::Variable(name),
             Lexeme::IntConstant(v) => Expression::Value(v),
+            Lexeme::CharConstant(v) => Expression::Value(v),
             Lexeme::StringConstant(s) => Expression::StringValue(s),
             Lexeme::Reference => {
                 // Next token should be the thing we want to reference
@@ -131,7 +132,7 @@ impl Parser {
                 let identifier = tokens.consume();
                 if let Lexeme::Identifier(name) = identifier {
                     Expression::Dereference(name)
-                } else {    
+                } else {
                     panic!("Expected token after * to be identifier");
                 }
             }
@@ -176,7 +177,8 @@ impl Parser {
             let tok = tokens.consume();
 
             match tok {
-                Lexeme::Identifier(_) | Lexeme::IntConstant(_) | Lexeme::StringConstant(_)
+                Lexeme::Identifier(_) | Lexeme::IntConstant(_) | Lexeme::CharConstant(_)
+                | Lexeme::StringConstant(_)
                 | Lexeme::Reference | Lexeme::Operator(OperatorType::Star)
                 if is_expecting_factor => {
                     tokens.push(tok);

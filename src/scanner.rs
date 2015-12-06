@@ -53,6 +53,12 @@ fn token_to_lexeme(token: &str) -> Lexeme {
                 return Lexeme::StringConstant(token.to_string());
             }
 
+            // Case 2: It's a char constant
+            if token.starts_with("\'") && token.ends_with("\'") {
+                let a = token.chars().nth(1).unwrap();
+                return Lexeme::CharConstant(a as i32);
+            }
+
             // Case 2: It's a identifier
             if token.chars().all(|ch| ch.is_alphanumeric() || ch == '_') {
                 Lexeme::Identifier(token.to_string())
@@ -140,6 +146,12 @@ fn get_token_strings(source: &str) -> LinkedList<Lexeme> {
                 // Push c back and get the string constant
                 chars.push_front(c);
                 s = get_string_constant(&mut chars);
+            }
+            '\'' => {
+                s.push(chars.pop_front().unwrap());
+                let next_quote = chars.pop_front().unwrap();
+                assert_eq!(next_quote, '\'');
+                s.push(next_quote);
             }
             'a'...'z' | 'A' ... 'Z' | '0'...'9' => {
                 while let Some(next_ch) = chars.front().cloned() {

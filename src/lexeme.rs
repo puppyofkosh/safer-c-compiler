@@ -24,6 +24,7 @@ pub enum Lexeme {
     Else,
     While,
     IntConstant(i32),
+    CharConstant(i32),
     Type(VarType),
     Operator(OperatorType),
     Reference,
