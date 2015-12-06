@@ -28,15 +28,14 @@ A bunch of things here...
 -be able to get the address of a particular struct field (ex: &x.y)
 -change syntax to be C like
 -be able to call malloc() and free(), etc along with other library routines
+-individual characters (example: 'a')
 
 # To do list (stuff we need to do!)
 Stuff we need to do to have a "C" compiler:
 -more tests (test all possible errors, and also write longer/more complicated programs)
-
 -maybe allow forward declarations
 -array reference (be able to do a[i]). Alternatively implement pointer arithmetic and just do *(a + i)
 -operators && and ||
--individual characters (example: 'a')
 -error messages from the parser
 
 
