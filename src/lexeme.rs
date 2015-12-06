@@ -16,6 +16,7 @@ pub enum OperatorType {
 pub enum VarType {
     Int,
     Char,
+    OwnedPointer,
 }
 
 #[derive(PartialEq, Debug, Clone)]

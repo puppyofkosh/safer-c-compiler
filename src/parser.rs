@@ -1,5 +1,6 @@
 use ast;
 use ast::AstExpressionNode;
+use ast::PointerType;
 use ast::FunctionCall;
 use ast::StructDefinition;
 use ast::Statement;
@@ -21,89 +22,92 @@ struct Parser {
     struct_table: HashSet<String>,
 }
 
-impl Parser {
+fn lexeme_var_type_to_ast(t: lexeme::VarType) -> ast::VarType {
+    match t {
+        lexeme::VarType::Int => ast::VarType::Int,
+        lexeme::VarType::Char => ast::VarType::Char,
+        lexeme::VarType::OwnedPointer => panic!("Use parse_type function!")
+    }
+}
 
+/// Convert OperatorType to BinaryOp
+/// OperatorType is for lexeme while BinaryOp is for ast
+/// ```
+/// self.optype_to_op(OperatorType::Plus) = BinaryOp::Plus
+/// ```
+fn optype_to_op(op: &OperatorType) -> BinaryOp {
+    match *op {
+        OperatorType::Plus => BinaryOp::Plus,
+        OperatorType::Minus => BinaryOp::Minus,
+        OperatorType::Star => BinaryOp::Multiply,
+        OperatorType::Divide => BinaryOp::Divide,
+        OperatorType::CompareEqual => BinaryOp::CompareEqual,
+        OperatorType::CompareGreater => BinaryOp::CompareGreater,
+        OperatorType::CompareLess => BinaryOp::CompareLess,
+        OperatorType::CompareGreaterOrEqual => BinaryOp::CompareGreaterOrEqual,
+        OperatorType::CompareLessOrEqual => BinaryOp::CompareLessOrEqual,
+        OperatorType::CompareNotEqual => BinaryOp::CompareNotEqual,
+    }
+}
+
+/// Return the precedence of the OperatorType
+/// ```
+/// self.get_precedence(OperatorType::Plus) = 0
+/// ```
+fn get_precedence(op: &OperatorType) -> i32 {
+    match *op {
+        OperatorType::Plus => 0,
+        OperatorType::Minus => 0,
+        OperatorType::CompareEqual => 1,
+        OperatorType::CompareGreater => 1,
+        OperatorType::CompareLess => 1,
+        OperatorType::CompareGreaterOrEqual => 1,
+        OperatorType::CompareLessOrEqual => 1,
+        OperatorType::CompareNotEqual => 1,
+        OperatorType::Star => 2,
+        OperatorType::Divide => 2,
+    }
+}
+
+/// Check if the input is a identifier and return the 'name' (string) of the identifier
+/// ```
+/// self.expect_identifier(Lexeme::identifier("foo")) = "foo"
+/// ```
+fn expect_identifier(t: Lexeme) -> String {
+    if let Lexeme::Identifier(s) = t {
+        s
+    } else {
+        panic!("Expected an identifier, instead got {:?}", t);
+    }
+}
+
+
+impl Parser {
+    /// Convert lexeme VarType to ast's VarType
     pub fn new() -> Parser {
         Parser {
             struct_table: HashSet::new(),
         }
     }
-    /// Convert OperatorType to BinaryOp
-    /// OperatorType is for lexeme while BinaryOp is for ast
-    /// ```
-    /// self.optype_to_op(OperatorType::Plus) = BinaryOp::Plus
-    /// ```
-    fn optype_to_op(&mut self, op: &OperatorType) -> BinaryOp {
-        match *op {
-            OperatorType::Plus => BinaryOp::Plus,
-            OperatorType::Minus => BinaryOp::Minus,
-            OperatorType::Star => BinaryOp::Multiply,
-            OperatorType::Divide => BinaryOp::Divide,
-            OperatorType::CompareEqual => BinaryOp::CompareEqual,
-            OperatorType::CompareGreater => BinaryOp::CompareGreater,
-            OperatorType::CompareLess => BinaryOp::CompareLess,
-            OperatorType::CompareGreaterOrEqual => BinaryOp::CompareGreaterOrEqual,
-            OperatorType::CompareLessOrEqual => BinaryOp::CompareLessOrEqual,
-            OperatorType::CompareNotEqual => BinaryOp::CompareNotEqual,
-        }
-    }
 
-    /// Convert lexeme VarType to ast's VarType
-    fn lexeme_var_type_to_ast(&mut self, t: lexeme::VarType) -> ast::VarType {
-        match t {
-            lexeme::VarType::Int => ast::VarType::Int,
-            lexeme::VarType::Char => ast::VarType::Char,
-        }
-    }
-
-    /// Return the precedence of the OperatorType
-    /// ```
-    /// self.get_precedence(OperatorType::Plus) = 0
-    /// ```
-    fn get_precedence(&mut self, op: &OperatorType) -> i32 {
-        match *op {
-            OperatorType::Plus => 0,
-            OperatorType::Minus => 0,
-            OperatorType::CompareEqual => 1,
-            OperatorType::CompareGreater => 1,
-            OperatorType::CompareLess => 1,
-            OperatorType::CompareGreaterOrEqual => 1,
-            OperatorType::CompareLessOrEqual => 1,
-            OperatorType::CompareNotEqual => 1,
-            OperatorType::Star => 2,
-            OperatorType::Divide => 2,
-        }
-    }
-
-    /// Check if the input is a identifier and return the 'name' (string) of the identifier
-    /// ```
-    /// self.expect_identifier(Lexeme::identifier("foo")) = "foo"
-    /// ```
-    fn expect_identifier(&mut self, t: Lexeme) -> String {
-        if let Lexeme::Identifier(s) = t {
-            s
-        } else {
-            panic!("Expected an identifier, instead got {:?}", t);
-        }
-    }
 
     /// Helper methods for two-stack algorithm:
     /// pop two stuff from the stack and evaluate
     /// them with the current operator
     /// Return an expression which is a binary operation
     fn evaluate_bin_op(&mut self, op: &OperatorType,
-        current_stack: &mut Vec<Expression>)
-        -> Expression {
-            let stack_empty_err = format!(
-                "Stack is empty when it shouldn't be on op {:?}",
-                op);
-                let r = current_stack.pop().expect(&stack_empty_err);
-                let l = current_stack.pop().expect(&stack_empty_err);
-                Expression::BinaryOp(self.optype_to_op(&op),
-                Box::new(AstExpressionNode::new(l)),
-                Box::new(AstExpressionNode::new(r)))
+                       current_stack: &mut Vec<Expression>)
+                       -> Expression {
+        let stack_empty_err = format!(
+            "Stack is empty when it shouldn't be on op {:?}",
+            op);
+        let r = current_stack.pop().expect(&stack_empty_err);
+        let l = current_stack.pop().expect(&stack_empty_err);
+        Expression::BinaryOp(optype_to_op(&op),
+                             Box::new(AstExpressionNode::new(l)),
+                             Box::new(AstExpressionNode::new(r)))
 
-            }
+    }
 
     // A "factor" is something that isn't a binary/arithmetic operation
     // f(x) is a factor
@@ -114,40 +118,40 @@ impl Parser {
         let tok = tokens.consume();
 
         let mut factor =
-        match tok {
-            Lexeme::Identifier(_) if tokens.peek() == Lexeme::LParen => {
-                tokens.push(tok);
-                Expression::Call(self.parse_call(tokens))
-            },
-            Lexeme::Identifier(name) => Expression::Variable(name),
-            Lexeme::IntConstant(v) => Expression::Value(v),
-            Lexeme::CharConstant(v) => Expression::Value(v),
-            Lexeme::StringConstant(s) => Expression::StringValue(s),
-            Lexeme::Reference => {
-                // Next token should be the thing we want to reference
-                let factor = self.parse_factor(tokens);
-                Expression::Reference(Box::new(AstExpressionNode::new(factor)))
-            }
-            Lexeme::Operator(OperatorType::Star) => {
-                let identifier = tokens.consume();
-                if let Lexeme::Identifier(name) = identifier {
-                    Expression::Dereference(name)
-                } else {
-                    panic!("Expected token after * to be identifier");
+            match tok {
+                Lexeme::Identifier(_) if tokens.peek() == Lexeme::LParen => {
+                    tokens.push(tok);
+                    Expression::Call(self.parse_call(tokens))
+                },
+                Lexeme::Identifier(name) => Expression::Variable(name),
+                Lexeme::IntConstant(v) => Expression::Value(v),
+                Lexeme::CharConstant(v) => Expression::Value(v),
+                Lexeme::StringConstant(s) => Expression::StringValue(s),
+                Lexeme::Reference => {
+                    // Next token should be the thing we want to reference
+                    let factor = self.parse_factor(tokens);
+                    Expression::Reference(Box::new(AstExpressionNode::new(factor)))
                 }
-            }
-            _ => panic!("Unexpected lexeme {:?}. A factor can't contain self",
-            tok)
-        };
+                Lexeme::Operator(OperatorType::Star) => {
+                    let identifier = tokens.consume();
+                    if let Lexeme::Identifier(name) = identifier {
+                        Expression::Dereference(name)
+                    } else {
+                        panic!("Expected token after * to be identifier");
+                    }
+                }
+                _ => panic!("Unexpected lexeme {:?}. A factor can't contain self",
+                            tok)
+            };
 
         // Now parse all the field accesses. self is for cases like
         // (*p).x.y.z
         let mut next_tok = tokens.consume();
         while let Lexeme::Dot = next_tok {
-            let field_name = self.expect_identifier(tokens.consume());
+            let field_name = expect_identifier(tokens.consume());
             let object_factor = AstExpressionNode::new(factor);
             factor = Expression::FieldAccess(Box::new(object_factor),
-            field_name);
+                                             field_name);
 
             next_tok = tokens.consume();
         }
@@ -178,13 +182,13 @@ impl Parser {
 
             match tok {
                 Lexeme::Identifier(_) | Lexeme::IntConstant(_) | Lexeme::CharConstant(_)
-                | Lexeme::StringConstant(_)
-                | Lexeme::Reference | Lexeme::Operator(OperatorType::Star)
-                if is_expecting_factor => {
-                    tokens.push(tok);
-                    output.push(self.parse_factor(tokens));
-                    is_expecting_factor = false;
-                }
+                    | Lexeme::StringConstant(_)
+                    | Lexeme::Reference | Lexeme::Operator(OperatorType::Star)
+                    if is_expecting_factor => {
+                        tokens.push(tok);
+                        output.push(self.parse_factor(tokens));
+                        is_expecting_factor = false;
+                    }
                 Lexeme::Dot => {
                     // We want to access the stuff we just parsed as a struct
                     // An example of self happening is when we do (*p).somefield
@@ -192,75 +196,75 @@ impl Parser {
                     // allow p->somefield
                     let prev_expr = AstExpressionNode::new(
                         output.pop()
-                        .expect("Cannot start an expression with a Dot"));
+                            .expect("Cannot start an expression with a Dot"));
 
-                        let field_name = self.expect_identifier(tokens.consume());
-                        let new_expr = Expression::FieldAccess(Box::new(prev_expr),
-                        field_name);
-                        output.push(new_expr);
+                    let field_name = expect_identifier(tokens.consume());
+                    let new_expr = Expression::FieldAccess(Box::new(prev_expr),
+                                                           field_name);
+                    output.push(new_expr);
 
-                        is_expecting_factor = false;
-                    }
-                    Lexeme::Operator(o1) => {
-                        while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
-                            if self.get_precedence(&o1) <= self.get_precedence(&o2) {
-                                let bin_expr = self.evaluate_bin_op(&o2, &mut output);
-                                output.push(bin_expr);
-                            }
-                            else {
-                                // push it back on the stack
-                                operator_stack.push(Lexeme::Operator(o2));
-                                break;
-                            }
+                    is_expecting_factor = false;
+                }
+                Lexeme::Operator(o1) => {
+                    while let Some(Lexeme::Operator(o2)) = operator_stack.pop() {
+                        if get_precedence(&o1) <= get_precedence(&o2) {
+                            let bin_expr = self.evaluate_bin_op(&o2, &mut output);
+                            output.push(bin_expr);
                         }
-                        operator_stack.push(Lexeme::Operator(o1));
-                        is_expecting_factor = true;
-                    }
-                    Lexeme::LParen => {
-                        operator_stack.push(tok);
-                        num_left_parens += 1;
-                    }
-                    Lexeme::RParen => {
-                        // Either the parens are mismatched, or we don't want
-                        // self right paren.
-                        if num_left_parens == num_right_parens {
-                            tokens.push(tok);
+                        else {
+                            // push it back on the stack
+                            operator_stack.push(Lexeme::Operator(o2));
                             break;
                         }
-
-                        num_right_parens += 1;
-                        while let Some(lex) = operator_stack.pop() {
-                            if let Lexeme::Operator(op) = lex {
-                                let bin_expr = self.evaluate_bin_op(&op, &mut output);
-                                output.push(bin_expr);
-                            }
-                            else {
-                                break;
-                            }
-                        }
                     }
-                    _ => {
-                        // We don't know what self token is, so we give it back, and
-                        // assume the expression ends here
+                    operator_stack.push(Lexeme::Operator(o1));
+                    is_expecting_factor = true;
+                }
+                Lexeme::LParen => {
+                    operator_stack.push(tok);
+                    num_left_parens += 1;
+                }
+                Lexeme::RParen => {
+                    // Either the parens are mismatched, or we don't want
+                    // self right paren.
+                    if num_left_parens == num_right_parens {
                         tokens.push(tok);
                         break;
-                    },
-                }
-            }
+                    }
 
-            while let Some(op) = operator_stack.pop() {
-                if let Lexeme::Operator(o) = op {
-                    let bin_expr = self.evaluate_bin_op(&o, &mut output);
-                    output.push(bin_expr);
+                    num_right_parens += 1;
+                    while let Some(lex) = operator_stack.pop() {
+                        if let Lexeme::Operator(op) = lex {
+                            let bin_expr = self.evaluate_bin_op(&op, &mut output);
+                            output.push(bin_expr);
+                        }
+                        else {
+                            break;
+                        }
+                    }
                 }
-                else {
-                    panic!("Mismatched parens");
-                }
+                _ => {
+                    // We don't know what self token is, so we give it back, and
+                    // assume the expression ends here
+                    tokens.push(tok);
+                    break;
+                },
             }
+        }
 
-            let res = output.pop().expect("Error: output is empty!");
-            assert!(output.is_empty(), "Tokens remaining on the stack! Invalid input");
-            res
+        while let Some(op) = operator_stack.pop() {
+            if let Lexeme::Operator(o) = op {
+                let bin_expr = self.evaluate_bin_op(&o, &mut output);
+                output.push(bin_expr);
+            }
+            else {
+                panic!("Mismatched parens");
+            }
+        }
+
+        let res = output.pop().expect("Error: output is empty!");
+        assert!(output.is_empty(), "Tokens remaining on the stack! Invalid input");
+        res
     }
 
     /// Parse a expression using two-stack algorithm
@@ -272,13 +276,22 @@ impl Parser {
     /// Parse the type
     fn parse_type(&mut self, tokens: &mut TokenStream) -> ast::VarType {
         let tok = tokens.consume();
-        if let Lexeme::Type(t) = tok {
-            let base_type = self.lexeme_var_type_to_ast(t);
-            self.parse_pointer(tokens, base_type)
-        } else if let Lexeme::Identifier(struct_name) = tok {
-            self.parse_pointer(tokens, ast::VarType::Struct(struct_name))
-        } else {
-            panic!("Unexpected token! {:?}", tok);
+
+        match tok {
+            Lexeme::Type(lexeme::VarType::OwnedPointer) => {
+                assert_eq!(tokens.consume(), Lexeme::LParen);
+                let inner_type = self.parse_type(tokens);
+                assert_eq!(tokens.consume(), Lexeme::RParen);
+                ast::VarType::Pointer(PointerType::Owned, Box::new(inner_type))
+            }
+            Lexeme::Type(t) => {
+                let base_type = lexeme_var_type_to_ast(t);
+                self.parse_pointer(tokens, base_type)
+            }
+            Lexeme::Identifier(struct_name) => {
+                self.parse_pointer(tokens, ast::VarType::Struct(struct_name))
+            }
+            _ => panic!("Unexpected token! {:?}", tok),
         }
     }
 
@@ -286,7 +299,7 @@ impl Parser {
     fn parse_pointer(&mut self, tokens: &mut TokenStream, base_type: ast::VarType) -> ast::VarType {
         let mut res = base_type;
         while tokens.peek() == Lexeme::Operator(OperatorType::Star) {
-            res = ast::VarType::Pointer(Box::new(res.clone()));
+            res = ast::VarType::Pointer(PointerType::Raw, Box::new(res));
             tokens.consume();
         }
         res
@@ -345,7 +358,7 @@ impl Parser {
 
         let var_type = self.parse_type(tokens);
 
-        let name = self.expect_identifier(tokens.consume());
+        let name = expect_identifier(tokens.consume());
 
         let mut tok = tokens.consume();
         let mut expr = None;
@@ -395,7 +408,7 @@ impl Parser {
         if let Lexeme::Type(_) = tokens.peek() {
             let return_type = self.parse_type(tokens);
 
-            let fn_name = self.expect_identifier(tokens.consume());
+            let fn_name = expect_identifier(tokens.consume());
             assert_eq!(tokens.consume(), Lexeme::LParen);
 
             let mut args = Vec::new();
@@ -403,7 +416,7 @@ impl Parser {
             loop {
                 let arg_type = self.parse_type(tokens);
                 arg_types.push(arg_type);
-                let fn_arg = self.expect_identifier(tokens.consume());
+                let fn_arg = expect_identifier(tokens.consume());
                 args.push(fn_arg);
                 if tokens.peek() == Lexeme::RParen { break; }
                 assert_eq!(tokens.consume(), Lexeme::Comma);
@@ -413,13 +426,13 @@ impl Parser {
 
             let statements = self.parse_block(tokens);
             return Function {name: fn_name,
-                statements: statements,
-                args: args,
-                fn_type: ast::FunctionType {
-                    arg_types: arg_types,
-                    return_type: return_type,
-                    is_var_args: false,
-                }
+                             statements: statements,
+                             args: args,
+                             fn_type: ast::FunctionType {
+                                 arg_types: arg_types,
+                                 return_type: return_type,
+                                 is_var_args: false,
+                             }
             }
         } else {
             panic!("The function declaration starts without type");
@@ -429,13 +442,13 @@ impl Parser {
     /// Parse a struct definition
     fn parse_struct(&mut self, tokens: &mut TokenStream) -> StructDefinition {
         assert_eq!(tokens.consume(), Lexeme::Struct);
-        let name = self.expect_identifier(tokens.consume());
+        let name = expect_identifier(tokens.consume());
         assert_eq!(tokens.consume(), Lexeme::StartBlock);
 
         let mut field_to_type = HashMap::new();
         while tokens.peek() != Lexeme::EndBlock {
             let typ = self.parse_type(tokens);
-            let field_name = self.expect_identifier(tokens.consume());
+            let field_name = expect_identifier(tokens.consume());
 
             field_to_type.insert(field_name, typ);
 
@@ -508,7 +521,7 @@ impl Parser {
             }
         }
         ast::Program{functions: functions,
-            structs: structs}
+                     structs: structs}
     }
 }
 

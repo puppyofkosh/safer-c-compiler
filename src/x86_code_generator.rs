@@ -227,7 +227,7 @@ impl X86CodeGenerator {
                     .unwrap()
                     .var_type;
 
-                let instr = if let VarType::Pointer(ref t) = *p_typ {
+                let instr = if let VarType::Pointer(_, ref t) = *p_typ {
                     move_type(Dereference(EAX, 0),
                               Register(EAX),
                               self.representation_mgr.get_machine_type(t))
@@ -492,7 +492,7 @@ impl X86CodeGenerator {
         }
 
         let fn_name = match &fn_call.name[..] {
-            "alloc_int" => "malloc".to_string(),
+            "alloc_int" | "alloc_owned_int" => "malloc".to_string(),
             "free_int" => "free".to_string(),
             _ => fn_call.name.clone(),
         };

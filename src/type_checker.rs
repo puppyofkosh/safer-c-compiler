@@ -1,4 +1,5 @@
 use ast::AstExpressionNode;
+use ast::PointerType;
 use ast::Expression;
 use ast::FunctionType;
 use ast::FunctionCall;
@@ -49,13 +50,15 @@ impl TypeChecker {
         t.function_to_type.insert("printf".to_string(),
                                   FunctionType {
                                       return_type: Int,
-                                      arg_types: vec![Pointer(Box::new(Char))],
+                                      arg_types: vec![Pointer(PointerType::Raw,
+                                                              Box::new(Char))],
                                       is_var_args: true,
                                   });
         t.function_to_type.insert("scanf".to_string(),
                                   FunctionType {
                                       return_type: Int,
-                                      arg_types: vec![Pointer(Box::new(Char))],
+                                      arg_types: vec![Pointer(PointerType::Raw,
+                                                              Box::new(Char))],
                                       is_var_args: true,
                                   });
         t.function_to_type.insert("fflush".to_string(),
@@ -66,14 +69,23 @@ impl TypeChecker {
                                   });
         t.function_to_type.insert("alloc_int".to_string(),
                                   FunctionType {
-                                      return_type: Pointer(Box::new(Int)),
+                                      return_type: Pointer(PointerType::Raw,
+                                                           Box::new(Int)),
                                       arg_types: vec![Int],
                                       is_var_args: false,
                                   });
         t.function_to_type.insert("free_int".to_string(),
                                   FunctionType {
                                       return_type: Int,
-                                      arg_types: vec![Pointer(Box::new(Int))],
+                                      arg_types: vec![Pointer(PointerType::Raw,
+                                                              Box::new(Int))],
+                                      is_var_args: false,
+                                  });
+        t.function_to_type.insert("alloc_owned_int".to_string(),
+                                  FunctionType {
+                                      return_type: Pointer(PointerType::Owned,
+                                                           Box::new(Int)),
+                                      arg_types: vec![Int],
                                       is_var_args: false,
                                   });
 
@@ -85,7 +97,7 @@ impl TypeChecker {
     fn type_exists(&self, typ: &VarType) -> bool {
         match *typ {
             Int | Char => true,
-            Pointer(ref t) => self.type_exists(t),
+            Pointer(_, ref t) => self.type_exists(t),
             Struct(ref struct_name) => {
                 self.struct_to_definition.get(struct_name).is_some()
             }
@@ -158,7 +170,7 @@ impl TypeChecker {
             let var_type_opt = self.get_var_type_or_report(name);
             if var_type_opt.is_none() {
                 None
-            } else if let Some(&Pointer(ref t)) = var_type_opt {
+            } else if let Some(&Pointer(_, ref t)) = var_type_opt {
                 is_ptr = true;
                 Some((**t).clone())
             } else {
@@ -222,7 +234,8 @@ impl TypeChecker {
             Expression::Variable(ref name) => {
                 self.get_var_type_or_report(name).cloned()
             }
-            Expression::StringValue(_) => Some(Pointer(Box::new(Char))),
+            Expression::StringValue(_) => Some(Pointer(PointerType::Raw,
+                                                       Box::new(Char))),
             Expression::BinaryOp(ref op, ref mut l, ref mut r) => {
                 self.get_binary_op_expr_type(op, l, r)
             }
@@ -233,7 +246,7 @@ impl TypeChecker {
                 let expr_type = self.annotate_type(expr);
                 if let Some(t) = expr_type {
                     if expression_has_address(expr) {
-                        Some(Pointer(Box::new(t)))
+                        Some(Pointer(PointerType::Raw, Box::new(t)))
                     } else {
                         self.errors_found.push(format!(
                             "Cannot reference expression \
