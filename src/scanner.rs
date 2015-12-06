@@ -27,7 +27,6 @@ fn token_to_lexeme(token: &str) -> Lexeme {
         "struct" => Lexeme::Struct,
         "int" => Lexeme::Type(VarType::Int),
         "char" => Lexeme::Type(VarType::Char),
-        "pointer" => Lexeme::Type(VarType::Pointer),
         "&" => Lexeme::Reference,
         "=" => Lexeme::Assign,
         "==" => Lexeme::Operator(OperatorType::CompareEqual),

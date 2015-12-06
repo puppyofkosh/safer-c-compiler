@@ -3,7 +3,7 @@
 // This test is mostly to make sure that this compiles
 
 struct A {
-    pointer(B) b;
+    B* b;
 }
 
 struct B {

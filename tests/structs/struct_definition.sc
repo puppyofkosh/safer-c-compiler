@@ -1,7 +1,7 @@
 // 21
 struct MyStruct {
        int x;
-       pointer(int) y;
+       int* y;
        char z;
 }
 

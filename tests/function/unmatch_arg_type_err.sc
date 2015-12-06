@@ -6,7 +6,7 @@ int func(int a, int b) {
 
 int main(int arg) {
     int a = 10;
-    pointer(int) b = &a;
+    int* b = &a;
 
     func(a, b);
 

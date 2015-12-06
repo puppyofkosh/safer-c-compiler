@@ -13,7 +13,7 @@ int main(int arg) {
 
     int result = 0;
 
-    pointer(char) p = &a.x;
+    char* p = &a.x;
 
     // Test reading from the pointer (1)
     result = result + *p;

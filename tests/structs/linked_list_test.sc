@@ -2,10 +2,10 @@
 
 struct List {
        int v;
-       pointer(List) next;
+       List* next;
 }
 
-int sum_list(pointer(List) p) {
+int sum_list(List* p) {
     int s = 0;
     while p != 0 {
         s = s + (*p).v;
@@ -29,6 +29,6 @@ int main(int arg) {
     c.next = &b;
 
     print sum_list(&c);
-    
+
     return 0;
 }

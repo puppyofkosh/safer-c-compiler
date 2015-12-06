@@ -5,7 +5,7 @@ int main(int arg) {
    char z = 3;
    char w = 4;
 
-   pointer(char) p = &w;
+   char* p = &w;
 
    print *p;
 }

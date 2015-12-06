@@ -1,5 +1,5 @@
 // 2
-int get_val(pointer(int) arg) {
+int get_val(int* arg) {
    return *arg;
 }
 

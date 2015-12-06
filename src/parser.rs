@@ -53,7 +53,6 @@ impl Parser {
         match t {
             lexeme::VarType::Int => ast::VarType::Int,
             lexeme::VarType::Char => ast::VarType::Char,
-            lexeme::VarType::Pointer => panic!("Use self.parse_type function!")
         }
     }
 
@@ -132,7 +131,7 @@ impl Parser {
                 let identifier = tokens.consume();
                 if let Lexeme::Identifier(name) = identifier {
                     Expression::Dereference(name)
-                } else {
+                } else {    
                     panic!("Expected token after * to be identifier");
                 }
             }
@@ -272,19 +271,23 @@ impl Parser {
     fn parse_type(&mut self, tokens: &mut TokenStream) -> ast::VarType {
         let tok = tokens.consume();
         if let Lexeme::Type(t) = tok {
-            if t == lexeme::VarType::Pointer {
-                assert_eq!(tokens.consume(), Lexeme::LParen);
-                let res = ast::VarType::Pointer(Box::new(self.parse_type(tokens)));
-                assert_eq!(tokens.consume(), Lexeme::RParen);
-                return res;
-            } else {
-                return self.lexeme_var_type_to_ast(t);
-            }
+            let base_type = self.lexeme_var_type_to_ast(t);
+            self.parse_pointer(tokens, base_type)
         } else if let Lexeme::Identifier(struct_name) = tok {
-            ast::VarType::Struct(struct_name)
+            self.parse_pointer(tokens, ast::VarType::Struct(struct_name))
         } else {
             panic!("Unexpected token! {:?}", tok);
         }
+    }
+
+    /// Parse pointer if needed
+    fn parse_pointer(&mut self, tokens: &mut TokenStream, base_type: ast::VarType) -> ast::VarType {
+        let mut res = base_type;
+        while tokens.peek() == Lexeme::Operator(OperatorType::Star) {
+            res = ast::VarType::Pointer(Box::new(res.clone()));
+            tokens.consume();
+        }
+        res
     }
 
     /// Parse a return statement

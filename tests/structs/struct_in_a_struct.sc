@@ -14,7 +14,7 @@ struct B {
     A y;
 }
 
-int compute_sum(pointer(B) p) {
+int compute_sum(B* p) {
     int result = (*p).x.x + (*p).x.y + (*p).y.x + (*p).y.y;
     return result;
 }
@@ -31,7 +31,7 @@ int main(int arg) {
     int s = compute_sum(&b);
 
     // Now write to b.x.y, and make sure nothing else gets changed
-    pointer(int) p = &b.x.y;
+    int* p = &b.x.y;
     *p = *p + 100;
 
     // 300

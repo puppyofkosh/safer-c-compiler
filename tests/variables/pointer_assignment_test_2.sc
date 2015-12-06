@@ -1,5 +1,5 @@
 // 5
-int setFive(pointer(int) arg) {
+int setFive(int* arg) {
    *arg = 5;
    return 0;
 }

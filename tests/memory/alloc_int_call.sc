@@ -1,6 +1,6 @@
 // 11
 int main(int arg) {
-    pointer(int) p = alloc_int(1);
+    int* p = alloc_int(1);
 
     *p = 11;
 

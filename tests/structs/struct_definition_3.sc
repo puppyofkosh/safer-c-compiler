@@ -4,7 +4,7 @@ struct MyStruct {
     int y;
 }
 
-int compute_sum(pointer(MyStruct) p) {
+int compute_sum(MyStruct* p) {
     return (*p).x + (*p).y;
 }
 

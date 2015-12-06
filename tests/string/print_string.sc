@@ -1,7 +1,7 @@
 // 10
 // last character is a \n (which is 10 in ascii)
 int main(int arg) {
-   pointer(char) p = "hallo thar\n";
+   char* p = "hallo thar\n";
    
    while *p != 0 {
          print *p;

@@ -5,7 +5,7 @@ int function(int arg) {
 }
 
 int main(int arg) {
-    pointer(int) p = &call(function, 5);
+    int* p = &call(function, 5);
 
     return 0;
 }

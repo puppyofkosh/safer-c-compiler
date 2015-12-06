@@ -64,3 +64,7 @@ int, char, pointer
 ideas for more tests:
 variable already declared
 function argument type wrong
+
+# Tricky tests:
+weird_reference_and_dereference.sc
+pointer_of_a_pointer.sc

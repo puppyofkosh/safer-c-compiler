@@ -5,7 +5,7 @@ struct MyStruct {
        char b;
 }
 
-int set300(pointer(MyStruct) p) {
+int set300(MyStruct* p) {
    (*p).x = 300;
 
    return 0;
@@ -19,7 +19,7 @@ int main(int arg) {
    s.a = 200;
    s.b = 50;
 
-   pointer(MyStruct) p = &s;
+   MyStruct* p = &s;
 
    set300(p);
    
