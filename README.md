@@ -65,6 +65,7 @@ int, char, pointer
 
 ideas for more tests:
 variable already declared
+variable already declared in multiple blocks
 function argument type wrong
 mutual recursion
 make other calls to stuff like write()

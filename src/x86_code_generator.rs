@@ -498,10 +498,11 @@ impl X86CodeGenerator {
             _ => fn_call.name.clone(),
         };
         
-        if &fn_call.name == "malloc" {
+        // FIXME: This does not belong here. It should be done at an earlier stage.
+        if &fn_call.name == "alloc_int" || &fn_call.name == "alloc_owned_int" {
             // Multiply argument by four
             self.instructions.push(Pop(Register(EAX)));
-            self.instructions.push(Multiply(IntConstant(4), Register(EAX)));
+            self.instructions.push(Multiply(IntConstant(WORD_SIZE), Register(EAX)));
             self.instructions.push(Push(Register(EAX)));
         }
 

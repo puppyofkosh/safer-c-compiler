@@ -284,7 +284,9 @@ impl Parser {
                 assert_eq!(tokens.consume(), Lexeme::LParen);
                 let inner_type = self.parse_type(tokens);
                 assert_eq!(tokens.consume(), Lexeme::RParen);
-                ast::VarType::Pointer(PointerType::Owned, Box::new(inner_type))
+                // Note you can't have a pointer to an owned_pointer
+                ast::VarType::Pointer(PointerType::Owned,
+                                      Box::new(inner_type))
             }
             Lexeme::Type(t) => {
                 let base_type = lexeme_var_type_to_ast(t);
