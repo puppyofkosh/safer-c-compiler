@@ -1,4 +1,5 @@
 use ast;
+use ast::Block;
 use ast::AstExpressionNode;
 use ast::PointerType;
 use ast::FunctionCall;
@@ -16,6 +17,7 @@ use token_stream::TokenStream;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 
 struct Parser {
     // Table for recognizing struct we have
@@ -490,18 +492,17 @@ impl Parser {
     }
 
     /// Parse a block which is simply formed by a bunch of statements
-    fn parse_block(&mut self, tokens: &mut TokenStream) -> Vec<Statement> {
-        let mut out = Vec::new();
+    fn parse_block(&mut self, tokens: &mut TokenStream) -> Block {
+        let mut statements = VecDeque::new();
         assert_eq!(tokens.consume(), Lexeme::StartBlock);
 
         while !tokens.is_empty() {
             if tokens.peek() == Lexeme::EndBlock {
                 tokens.consume();
-
-                return out;
+                return Block {statements: statements};
             }
 
-            out.push(self.parse_statement(tokens));
+            statements.push_back(self.parse_statement(tokens));
         }
 
         panic!("Block did not end with a EndBlock lexeme");

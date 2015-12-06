@@ -1,3 +1,4 @@
+use ast;
 use ast::Statement;
 use ast::Expression;
 use ast::AstExpressionNode;
@@ -149,9 +150,9 @@ impl X86CodeGenerator {
         }
     }
 
-    fn evaluate_block(&mut self, statements: &Vec<Statement>) {
+    fn evaluate_block(&mut self, block: &ast::Block) {
         self.blocks.push(CodeBlock::new());
-        for stmt in statements {
+        for stmt in block.statements.iter() {
             self.evaluate_statement(stmt);
         }
 
@@ -300,7 +301,7 @@ impl X86CodeGenerator {
                 instr.push(Instruction::Other("call fflush".to_string()));
                 instr.push(free_stack(WORD_SIZE));
             }
-            Statement::If(ref expr, ref statements, ref else_statements_opt) => {
+            Statement::If(ref expr, ref then_block, ref else_block_opt) => {
                 let reg = self.evaluate_expression(&expr);
 
                 let label = format!("L{}", self.label_num);
@@ -310,9 +311,9 @@ impl X86CodeGenerator {
                 self.instructions.push(JumpIfEqual(label.to_string()));
 
                 self.instructions.push(Comment("The start of if block".to_string()));
-                self.evaluate_block(statements);
+                self.evaluate_block(then_block);
 
-                if else_statements_opt.is_some() {
+                if else_block_opt.is_some() {
                     self.instructions.push(Comment("The end of if block, skipping the else block".to_string()));
                     let label = format!("L{}", self.label_num);
                     self.instructions.push(Jump(label.to_string()));
@@ -320,7 +321,7 @@ impl X86CodeGenerator {
                 // print the label to jump to if the expr is false
                 self.instructions.push(Instruction::Label(label.to_string()));
 
-                if let &Some(ref else_statements) = else_statements_opt {
+                if let &Some(ref else_statements) = else_block_opt {
                     self.instructions.push(Comment("The start of else block".to_string()));
                     self.evaluate_block(else_statements);
                     let label = format!("L{}", self.label_num);
@@ -328,14 +329,14 @@ impl X86CodeGenerator {
                     self.instructions.push(Instruction::Label(label.to_string()));
                 }
             }
-            Statement::While(ref expr, ref statement) => {
+            Statement::While(ref expr, ref block) => {
                 let label1 = format!("L{}", self.label_num);
                 let label2 = format!("L{}", self.label_num+1);
                 self.label_num += 2;
 
                 self.instructions.push(Jump(label2.to_string()));
                 self.instructions.push(Label(label1.to_string()));
-                self.evaluate_block(statement);
+                self.evaluate_block(block);
 
                 self.instructions.push(Label(label2.to_string()));
                 let reg = self.evaluate_expression(&expr);

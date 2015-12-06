@@ -1,4 +1,5 @@
 use ast::AstExpressionNode;
+use ast::Block;
 use ast::PointerType;
 use ast::Expression;
 use ast::FunctionType;
@@ -376,10 +377,10 @@ impl TypeChecker {
         }
     }
 
-    fn annotate_types_block(&mut self, stmts: &mut Vec<Statement>) -> bool {
+    fn annotate_types_block(&mut self, block: &mut Block) -> bool {
         self.blocks.push(CodeBlock::new());
         let mut res = true;
-        for stmt in stmts.iter_mut() {
+        for stmt in block.statements.iter_mut() {
             if !self.annotate_types_stmt(stmt) {
                 res = false;
             }

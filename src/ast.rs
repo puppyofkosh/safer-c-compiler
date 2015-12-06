@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -80,17 +81,22 @@ impl AstExpressionNode {
 pub enum Statement {
     Return(AstExpressionNode),
     Print(AstExpressionNode),
-    If(AstExpressionNode, Vec<Statement>, Option<Vec<Statement>>),
-    While(AstExpressionNode, Vec<Statement>),
+    If(AstExpressionNode, Block, Option<Block>),
+    While(AstExpressionNode, Block),
     Let(String, VarType, Option<AstExpressionNode>),
     Assign(AstExpressionNode, AstExpressionNode),
     Call(FunctionCall),
 }
 
 #[derive(Debug)]
+pub struct Block {
+    pub statements: VecDeque<Statement>,
+}
+
+#[derive(Debug)]
 pub struct Function {
     pub name: String,
-    pub statements: Vec<Statement>,
+    pub statements: Block,
 
     pub args: Vec<String>,
 
