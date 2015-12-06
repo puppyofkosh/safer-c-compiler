@@ -19,17 +19,19 @@ A bunch of things here...
 -functions with multiple args
 -eliminate the stupid "call" keyword (instead of call(function, a), just function(a))
 -be able to get the address of a particular struct field (ex: &x.y)
+-change syntax to be C like
+-be able to call malloc() and free(), etc along with other library routines
 
 # To do list (stuff we need to do!)
 Stuff we need to do to have a "C" compiler:
 -more tests (test all possible errors, and also write longer/more complicated programs)
--be able to call malloc() and free(), write(), etc along with other library routines
+
 -maybe allow forward declarations
 -array reference (be able to do a[i]). Alternatively implement pointer arithmetic and just do *(a + i)
 -operators && and ||
 -individual characters (example: 'a')
 -error messages from the parser
--change syntax to be C like
+
 
 Stuff we'd like to have:
 
@@ -64,6 +66,8 @@ int, char, pointer
 ideas for more tests:
 variable already declared
 function argument type wrong
+mutual recursion
+make other calls to stuff like write()
 
 # Tricky tests:
 weird_reference_and_dereference.sc
