@@ -3,7 +3,7 @@
 echo "Program:"
 cat $1
 
-# run the compiler
+# run the safer-c-compiler
 echo "Running the compiler"
 cargo run $1
 

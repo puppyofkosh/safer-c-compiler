@@ -528,5 +528,7 @@ impl Parser {
 /// The starter of the parser
 pub fn parse(tokens: &mut TokenStream) -> ast::Program {
     let mut p = Parser::new();
-    p.parse_program(tokens)
+    let prog = p.parse_program(tokens);
+
+    prog
 }
