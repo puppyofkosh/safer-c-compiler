@@ -268,14 +268,15 @@ impl X86CodeGenerator {
 
         instr.push(Move(Register(EBP), Register(ESP)));
         instr.push(Pop(Register(EBP)));
-        if self.current_function == "_start" {
-            instr.push(Move(Register(EAX), Register(EBX)));
-            instr.push(Move(IntConstant(1), Register(EAX)));
-            instr.push(Instruction::OtherStatic("int $0x80"));
-        }
-        else {
-            instr.push(Instruction::OtherStatic("ret"));
-        }
+        // if self.current_function == "_start" {
+        //     instr.push(Move(Register(EAX), Register(EBX)));
+        //     instr.push(Move(IntConstant(1), Register(EAX)));
+        //     instr.push(Instruction::OtherStatic("int $0x80"));
+        // }
+        // else {
+        //instr.push(Instruction::OtherStatic("ret"));
+        //}
+        instr.push(Instruction::OtherStatic("ret"));
     }
 
     fn evaluate_statement(&mut self,
@@ -515,11 +516,12 @@ impl X86CodeGenerator {
         assert!(self.identifier_to_var.is_empty());
         assert!(self.blocks.is_empty());
 
-        let name = if &fun.name == "main" {
-            "_start".to_string()
-        } else {
-            fun.name.clone()
-        };
+        // let name = if &fun.name == "main" {
+        //     "_start".to_string()
+        // } else {
+        //     fun.name.clone()
+        // };
+        let name = fun.name.clone();
 
         self.current_function = name.clone();
 
@@ -542,8 +544,8 @@ impl X86CodeGenerator {
 
         self.evaluate_block(&fun.statements);
 
-        if name == "_start" {
-            // If the function is main, then returns 0 at the end
+        if name == "main" {
+            //If the function is main, then returns 0 at the end
             let expr = AstExpressionNode::new(Expression::Value(0));
             let ret_stmt = Statement::Return(expr);
             self.evaluate_statement(&ret_stmt);
@@ -568,7 +570,7 @@ impl GeneratesCode for X86CodeGenerator {
         let asm_header = ".section .data\n\
                           decimal_format_str: .asciz \"%d\\n\"\n\
                           .section .text\n\
-                          .globl _start\n";
+                          .globl main\n";
         let mut code = asm_header.to_string();
         for function in functions {
             code.push_str(&self.generate_code_for_function(function));
