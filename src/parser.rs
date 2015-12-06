@@ -58,16 +58,16 @@ fn optype_to_op(op: &OperatorType) -> BinaryOp {
 /// ```
 fn get_precedence(op: &OperatorType) -> i32 {
     match *op {
-        OperatorType::Plus => 0,
-        OperatorType::Minus => 0,
+        OperatorType::Plus => 2,
+        OperatorType::Minus => 2,
         OperatorType::CompareEqual => 1,
         OperatorType::CompareGreater => 1,
         OperatorType::CompareLess => 1,
         OperatorType::CompareGreaterOrEqual => 1,
         OperatorType::CompareLessOrEqual => 1,
         OperatorType::CompareNotEqual => 1,
-        OperatorType::Star => 2,
-        OperatorType::Divide => 2,
+        OperatorType::Star => 3,
+        OperatorType::Divide => 3,
     }
 }
 
