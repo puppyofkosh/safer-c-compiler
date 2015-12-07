@@ -94,6 +94,17 @@ impl X86CodeGenerator {
         }
     }
 
+    // Move to a register. Doesn't matter which one.
+    fn move_op_to_register(&mut self, op: Operand) -> RegisterVal {
+        if let Register(reg) = op {
+            reg
+        } else {
+            // TODO: some clever register allocation someday
+            self.instructions.push(Move(op, Register(EAX)));
+            EAX
+        }
+    }
+
     fn move_var_to_register(&mut self,
                             varname: &str, reg: Operand) {
         let var = self.identifier_to_var
@@ -129,9 +140,11 @@ impl X86CodeGenerator {
                 let var = self.identifier_to_var.get(name).unwrap();
                 (EBP, var.stack_offset)
             }
-            Expression::Dereference(ref name) => {
-                self.move_var_to_register(name, Register(EBX));
-                (EBX, 0)
+            Expression::Dereference(ref expr) => {
+                let expr_op = self.evaluate_expression(expr);
+
+                let reg = self.move_op_to_register(expr_op);
+                (reg, 0)
             }
             Expression::FieldAccess(ref expr, ref field_name) => {
                 let (addr_reg,
@@ -217,19 +230,15 @@ impl X86CodeGenerator {
 
                 Register(EAX)
             }
-            Expression::Dereference(ref name) => {
-                // Move the address of the thing we're gonna copy to eax
-                self.move_var_to_register(name, Register(EAX));
+            Expression::Dereference(ref expr) => {
+                let addr_op = self.evaluate_expression(expr);
+                let addr_reg = self.move_op_to_register(addr_op);
 
-                // Figure out the type of the thing we're copying (matters
-                // cause we need to know how much to copy)
-                let p_typ = &self.identifier_to_var
-                    .get(name)
-                    .unwrap()
-                    .var_type;
-
-                let instr = if let VarType::Pointer(_, ref t) = *p_typ {
-                    move_type(Dereference(EAX, 0),
+                let typ = expr.typ
+                    .as_ref()
+                    .expect("Expressions should all have types now!");
+                let instr = if let VarType::Pointer(_, ref t) = *typ {
+                    move_type(Dereference(addr_reg, 0),
                               Register(EAX),
                               self.representation_mgr.get_machine_type(t))
                 } else {

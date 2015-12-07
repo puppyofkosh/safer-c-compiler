@@ -2,11 +2,13 @@ mod assembly;
 mod assembly_helper;
 mod assembly_printer;
 mod ast;
+mod ast_helper;
 mod code_block;
 mod code_generator;
 mod lexeme;
 mod owned_pointer_transformer;
 mod parser;
+//mod pointer_arithmetic_transformer;
 mod representation_manager;
 mod scanner;
 mod struct_analyzer;
@@ -14,6 +16,7 @@ mod token_stream;
 mod type_checker;
 mod type_checker_helper;
 mod x86_code_generator;
+
 
 use std::env;
 use std::error::Error;

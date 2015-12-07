@@ -135,12 +135,20 @@ impl Parser {
                     Expression::Reference(Box::new(AstExpressionNode::new(factor)))
                 }
                 Lexeme::Operator(OperatorType::Star) => {
-                    let identifier = tokens.consume();
-                    if let Lexeme::Identifier(name) = identifier {
-                        Expression::Dereference(name)
-                    } else {
-                        panic!("Expected token after * to be identifier");
-                    }
+                    let next = tokens.consume();
+                    let expr = 
+                        if next == Lexeme::LParen {
+                            // Parse the expression to dereference
+                            let expr = self.parse_expression(tokens);
+                            assert_eq!(tokens.consume(), Lexeme::RParen);
+                            expr
+                        } else if let Lexeme::Identifier(name) = next {
+                            AstExpressionNode::new(Expression::Variable(name))
+                        } else {
+                            panic!("Expected token after * to be identifier");
+                        };
+
+                    Expression::Dereference(Box::new(expr))
                 }
                 _ => panic!("Unexpected lexeme {:?}. A factor can't contain self",
                             tok)

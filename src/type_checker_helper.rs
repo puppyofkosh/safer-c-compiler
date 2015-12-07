@@ -5,18 +5,12 @@ use ast::VarType::*;
 use ast::Expression;
 use ast::AstExpressionNode;
 
+use ast_helper::is_pointer;
+
 pub fn type_contains(parent: &VarType, child: &VarType) -> bool {
     parent == child || (*parent == Int && *child == Char)
 }
 
-/// Return true if the type is Pointer
-pub fn is_pointer(typ: &VarType) -> bool {
-    if let Pointer(_, _) = *typ {
-        true
-    } else {
-        false
-    }
-}
 
 pub fn is_pointer_arithmetic(l: &VarType,
                              r: &VarType, op: BinaryOp) -> bool {

@@ -55,7 +55,7 @@ pub enum Expression {
     Reference(Box<AstExpressionNode>),
     // FIXME: Should eventually be an expression, not string
     // For now we'll say this is ok though.
-    Dereference(String),
+    Dereference(Box<AstExpressionNode>),
     FieldAccess(Box<AstExpressionNode>, String),
 }
 

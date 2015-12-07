@@ -11,11 +11,12 @@ use ast::VarType;
 use ast::StructDefinition;
 use ast;
 
+use ast_helper::is_pointer;
+
 use code_block::CodeBlock;
 
 use type_checker_helper;
 use type_checker_helper::type_contains;
-use type_checker_helper::is_pointer;
 use type_checker_helper::is_pointer_arithmetic;
 use type_checker_helper::expression_has_address;
 
@@ -178,30 +179,6 @@ impl TypeChecker {
     }
 
     // If name is a variable of type Pointer(Int), we return Int.
-    // FIXME: Fix this function, it is terrible
-    fn get_type_pointed_to_or_report(&mut self, name: &str) -> Option<VarType> {
-        let mut is_ptr = false;
-        let res =
-        {
-            let var_type_opt = self.get_var_type_or_report(name);
-            if var_type_opt.is_none() {
-                None
-            } else if let Some(&Pointer(_, ref t)) = var_type_opt {
-                is_ptr = true;
-                Some((**t).clone())
-            } else {
-                None
-            }
-        };
-
-        if !is_ptr {
-            self.errors_found
-                .push(format!("Cannot dereference non pointer, {}",
-                              name));
-        }
-        res
-    }
-
     fn get_binary_op_expr_type(&mut self,
                                op: &ast::BinaryOp, l: &mut AstExpressionNode,
                                r: &mut AstExpressionNode) -> Option<VarType> {
@@ -274,8 +251,17 @@ impl TypeChecker {
                     None
                 }
             }
-            Expression::Dereference(ref name) => {
-                self.get_type_pointed_to_or_report(name)
+            Expression::Dereference(ref mut expr) => {
+                let typ_opt = self.annotate_type(expr);
+                if let Some(&VarType::Pointer(_, ref typ)) = typ_opt.as_ref() {
+                    Some(*typ.clone())
+                } else {
+                    self.errors_found.push(format!("Cannot dereference \
+                                                    something of \
+                                                    type {:?}",
+                                                   typ_opt));
+                    None
+                }
             }
             Expression::FieldAccess(ref mut expr, ref field_name) => {
                 let expr_t = self.annotate_type(expr);
