@@ -33,7 +33,7 @@ int main(int arg) {
             scanf("%d", &x);
             Node *iter = head;
             Node *prev = 0;
-            int flag2 = 1;
+            int flag2 = (head != Null);
             while (flag2 == 1) {
                 if ((*iter).val == x) {
                     flag2 = 0;

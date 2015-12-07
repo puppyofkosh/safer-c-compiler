@@ -18,6 +18,7 @@ use code_block::CodeBlock;
 use type_checker_helper;
 use type_checker_helper::type_contains;
 use type_checker_helper::is_pointer_arithmetic;
+use type_checker_helper::is_pointer_comparison;
 use type_checker_helper::expression_has_address;
 
 use struct_analyzer::StructAnalyzer;
@@ -68,20 +69,6 @@ impl TypeChecker {
                                       return_type: Int,
                                       arg_types: vec![Int],
                                       is_var_args: false
-                                  });
-        t.function_to_type.insert("alloc_int".to_string(),
-                                  FunctionType {
-                                      return_type: Pointer(PointerType::Raw,
-                                                           Box::new(Int)),
-                                      arg_types: vec![Int],
-                                      is_var_args: false,
-                                  });
-        t.function_to_type.insert("free_int".to_string(),
-                                  FunctionType {
-                                      return_type: Int,
-                                      arg_types: vec![Pointer(PointerType::Raw,
-                                                              Box::new(Int))],
-                                      is_var_args: false,
                                   });
         t.function_to_type.insert("alloc_owned_int".to_string(),
                                   FunctionType {
@@ -198,6 +185,8 @@ impl TypeChecker {
             } else {
                 return Some(r_type);
             }
+        } else if is_pointer_comparison(&l_type, &r_type, *op) {
+            return Some(Char)
         }
 
         if type_contains(&Int, &l_type) &&

@@ -11,21 +11,23 @@ pub fn type_contains(parent: &VarType, child: &VarType) -> bool {
     parent == child || (*parent == Int && *child == Char)
 }
 
+pub fn is_pointer_comparison(l: &VarType, r: &VarType, op: BinaryOp) -> bool {
+    if op == BinaryOp::CompareEqual || op == BinaryOp::CompareNotEqual {
+        return is_pointer(&l) && is_pointer(&r);
+    }
+
+    false
+}
 
 pub fn is_pointer_arithmetic(l: &VarType,
                              r: &VarType, op: BinaryOp) -> bool {
-    if op != BinaryOp::Plus && op != BinaryOp::Minus
-        && op != BinaryOp::CompareEqual && op != BinaryOp::CompareNotEqual {
+    if op != BinaryOp::Plus && op != BinaryOp::Minus {
         return false;
     }
 
     if op == BinaryOp::Plus || op == BinaryOp::Minus {
         return (is_pointer(&l) && type_contains(&Int, &r)) ||
             (type_contains(&Int, &l) && is_pointer(&r));
-    }
-    
-    if op == BinaryOp::CompareEqual || op == BinaryOp::CompareNotEqual {
-        return is_pointer(&l) && is_pointer(&r);
     }
 
     return false;
