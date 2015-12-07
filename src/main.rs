@@ -6,9 +6,8 @@ mod ast_helper;
 mod code_block;
 mod code_generator;
 mod lexeme;
-mod owned_pointer_transformer;
 mod parser;
-//mod pointer_arithmetic_transformer;
+mod pointer_arithmetic_transformer;
 mod representation_manager;
 mod scanner;
 mod struct_analyzer;
@@ -24,7 +23,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-use owned_pointer_transformer::transform_program;
+use pointer_arithmetic_transformer::transform_pointer_arithmetic;
 
 use code_generator::GeneratesCode;
 
@@ -89,7 +88,8 @@ fn main() {
         return;
     }
 
-    transform_program(&mut prog);
+    transform_pointer_arithmetic(&mut prog);
+    assert!(type_checker.annotate_types(&mut prog));
 
     // Generating code
     let mut code_generator = x86_code_generator::X86CodeGenerator::new();

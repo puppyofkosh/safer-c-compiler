@@ -221,6 +221,13 @@ impl X86CodeGenerator {
                 }
                 Register(EAX)
             }
+            Expression::SizeOf(ref typ) => {
+                let mtype = self.representation_mgr.get_machine_type(typ);
+                let sz = get_mtype_size(mtype);
+
+                self.instructions.push(Move(IntConstant(sz), Register(EAX)));
+                Register(EAX)
+            }
             Expression::BinaryOp(ref op, ref l, ref r) => {
                 self.evaluate_binary_op(op, l, r)
             }

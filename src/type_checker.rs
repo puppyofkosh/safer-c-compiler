@@ -222,6 +222,15 @@ impl TypeChecker {
         let expr = &mut expr_node.expr;
         let typ =
         match *expr {
+            Expression::SizeOf(ref var_type) => {
+                if !self.type_exists(var_type) {
+                    self.errors_found.push(format!("Type {:?} doesn't exist.",
+                                                   var_type));
+                    None
+                } else {
+                    Some(Int)
+                }
+            }
             Expression::Value(v) if v >= 0 && v < 256 => Some(Char),
             Expression::Value(_) => Some(Int),
             Expression::Variable(ref name) => {

@@ -48,6 +48,7 @@ pub enum BinaryOp {
 #[derive(Debug)]
 pub enum Expression {
     Value(i32),
+    SizeOf(VarType),
     Variable(String),
     StringValue(String),
     BinaryOp(BinaryOp, Box<AstExpressionNode>, Box<AstExpressionNode>),
