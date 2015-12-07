@@ -37,8 +37,7 @@ fn read_file(name: &str) -> std::io::Result<String> {
 }
 
 /// Write the code to out/code.s file
-fn write_code(complete_code: &String) {
-    let path = Path::new("out/code.s");
+fn write_code(complete_code: &String, path: &Path) {
     let mut file = match File::create(&path) {
         Err(why) => panic!("couldn't create {}: {}",
                            path.display(),
@@ -88,13 +87,19 @@ fn main() {
         return;
     }
 
+    // Change all cases of pointer + i to something like
+    // pointer + sizeof(type) * i
     transform_pointer_arithmetic(&mut prog);
+
+    // Run typechecker again to be sure we didn't add any code
+    // that doesn't typecheck.
     assert!(type_checker.annotate_types(&mut prog));
 
     // Generating code
     let mut code_generator = x86_code_generator::X86CodeGenerator::new();
     let codestr = code_generator.generate_code(&prog);
 
-    // Write the code
-    write_code(&codestr);
+    // Write the code to a file
+    let path = Path::new("out/code.s");
+    write_code(&codestr, path);
 }
