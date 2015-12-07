@@ -176,7 +176,7 @@ impl X86CodeGenerator {
             panic!("Invalid state. Why is there no current block?");
         }
         let block = block_opt.unwrap();
-        
+
         // Pretty reasonable assumption
         assert!(block.declared_variables.len() < i32::max_value() as usize);
         let previous_offset = self.current_stack_offset;
@@ -208,11 +208,17 @@ impl X86CodeGenerator {
                 Register(EAX)
             }
             Expression::StringValue(ref v) => {
-                let label = format!(".LC{}", self.current_label_num);
-                self.current_label_num += 1;
-                self.string_to_label.insert(v.clone(), label.clone());
-                self.instructions.push(Move(Variable(label.clone()),
-                                            Register(EAX)));
+                if self.string_to_label.contains_key(v) {
+                    let label = self.string_to_label.get(v).unwrap();
+                    self.instructions.push(Move(Variable(label.clone()),
+                                                Register(EAX)));
+                } else {
+                    let label = format!(".LC{}", self.current_label_num);
+                    self.current_label_num += 1;
+                    self.string_to_label.insert(v.clone(), label.clone());
+                    self.instructions.push(Move(Variable(label.clone()),
+                                                Register(EAX)));
+                }
                 Register(EAX)
             }
             Expression::BinaryOp(ref op, ref l, ref r) => {
@@ -509,7 +515,7 @@ impl X86CodeGenerator {
             "free_int" => "free".to_string(),
             _ => fn_call.name.clone(),
         };
-        
+
         // FIXME: This does not belong here. It should be done at an earlier stage.
         if &fn_call.name == "alloc_int" || &fn_call.name == "alloc_owned_int" {
             // Multiply argument by four

@@ -14,13 +14,20 @@ pub fn type_contains(parent: &VarType, child: &VarType) -> bool {
 
 pub fn is_pointer_arithmetic(l: &VarType,
                              r: &VarType, op: BinaryOp) -> bool {
-    if op != BinaryOp::Plus && op != BinaryOp::Minus 
+    if op != BinaryOp::Plus && op != BinaryOp::Minus
         && op != BinaryOp::CompareEqual && op != BinaryOp::CompareNotEqual {
         return false;
     }
 
-    return (is_pointer(&l) && type_contains(&Int, &r)) ||
-        (type_contains(&Int, &l) && is_pointer(&r));
+    if op == BinaryOp::Plus || op == BinaryOp::Minus {
+        return (is_pointer(&l) && type_contains(&Int, &r)) ||
+            (type_contains(&Int, &l) && is_pointer(&r));
+    }
+    if op == BinaryOp::CompareEqual || op == BinaryOp::CompareNotEqual {
+        return is_pointer(&l) && is_pointer(&r);
+    }
+
+    return false;
 }
 
 // Return true if the expression represents something that has an address
@@ -51,7 +58,7 @@ pub fn can_assign_expr_to_type(left_t: &VarType,
             return true;
         }
     }
-    
+
     if !type_contains(left_t, right.typ.as_ref().unwrap()) {
         // Special case: left is a pointer and right is 0
         // it is okay to assign 0 to a pointer
@@ -75,7 +82,7 @@ pub fn is_assignment_valid(left: &AstExpressionNode,
     if !left.typ.is_some() || !right.typ.is_some() {
         return false;
     }
-    
+
     if !expression_has_address(left) {
         return false;
     }
