@@ -7,7 +7,8 @@ struct List {
 
 int sum_list(List* p) {
     int s = 0;
-    while p != 0 {
+    int *null = 0;
+    while p != null {
         s = s + (*p).v;
         p = (*p).next;
     }

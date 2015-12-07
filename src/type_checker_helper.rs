@@ -23,6 +23,7 @@ pub fn is_pointer_arithmetic(l: &VarType,
         return (is_pointer(&l) && type_contains(&Int, &r)) ||
             (type_contains(&Int, &l) && is_pointer(&r));
     }
+    
     if op == BinaryOp::CompareEqual || op == BinaryOp::CompareNotEqual {
         return is_pointer(&l) && is_pointer(&r);
     }
