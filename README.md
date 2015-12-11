@@ -24,9 +24,15 @@ sudo apt-get install libc6-dbg:i386
 ### How to run
 ```bash
 cargo run [program.sc] # this will give the assembly code.s in the folder 'out'
-./build
+./build.sh
 ./a.out
 ```
+
+Alternatively you can do:
+```bash
+./run.sh demo/hello_world.sc
+```
+
 ----------------------------------------------------------
 ### How to run the tester
 ```bash
