@@ -18,7 +18,12 @@ and you're on 64 bit you will need to do:
 sudo apt-get install libc6-dbg:i386
 ```
 
+
 (See [the question to get more information](https://bugs.launchpad.net/ubuntu/+source/eglibc/+bug/881236) )
+
+
+You also need python, and rust. Rust isn't avaible as a "package" so you need to download and install it from here (they make it really easy, you just run an install script)
+https://www.rust-lang.org/
 
 ----------------------------------------------------------
 ### How to run
